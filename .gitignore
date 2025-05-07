@@ -1,0 +1,39 @@
+# Mediu virtual
+venv/
+env/
+.env
+
+# Fisiere Python generate
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Fisiere Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+media/
+
+# Fisiere specifice IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Fisiere de configurare locale
+local_settings.py
+
+# Fisiere Node.js/Vue.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+/dist
+
+# Fisiere macOS
+.DS_Store
+
+# Fisiere Windows
+Thumbs.db
