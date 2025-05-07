@@ -18,13 +18,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def register(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            user = User.objects.create_user(
-                username=serializer.validated_data['username'],
-                email=serializer.validated_data['email'],
-                password=request.data['password'],
-                first_name=serializer.validated_data.get('first_name', ''),
-                last_name=serializer.validated_data.get('last_name', '')
-            )
+            user = serializer.save()  # aici parola e deja criptată
             UserProfile.objects.create(user=user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

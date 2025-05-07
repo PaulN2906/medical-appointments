@@ -8,7 +8,7 @@ class DoctorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Doctor
         fields = ['id', 'user', 'speciality', 'description']
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'user']
 
 class ScheduleSerializer(serializers.ModelSerializer):
     doctor_name = serializers.SerializerMethodField()

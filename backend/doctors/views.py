@@ -10,6 +10,13 @@ class DoctorViewSet(viewsets.ModelViewSet):
     serializer_class = DoctorSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def list(self, request, *args, **kwargs):
+        print("User autenticat:", request.user)
+        return super().list(request, *args, **kwargs)
+
 class ScheduleViewSet(viewsets.ModelViewSet):
     queryset = Schedule.objects.all()
     serializer_class = ScheduleSerializer
@@ -21,5 +28,5 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     
     @transaction.atomic
     def create(self, request, *args, **kwargs):
-        # Implementăm logica de validare și creare cu tranzacții
+        # Implementam logica de validare si creare cu tranzactii
         return super().create(request, *args, **kwargs)

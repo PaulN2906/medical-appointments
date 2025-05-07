@@ -1,11 +1,15 @@
 from rest_framework import serializers
-from .models import Patient
-from authentication.serializers import UserSerializer
+from .models import Appointment
+from doctors.serializers import DoctorSerializer, ScheduleSerializer
+from patients.serializers import PatientSerializer
 
-class PatientSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
+class AppointmentSerializer(serializers.ModelSerializer):
+    doctor_details = DoctorSerializer(source='doctor', read_only=True)
+    patient_details = PatientSerializer(source='patient', read_only=True)
+    schedule_details = ScheduleSerializer(source='schedule', read_only=True)
     
     class Meta:
-        model = Patient
-        fields = ['id', 'user', 'date_of_birth']
-        read_only_fields = ['id']
+        model = Appointment
+        fields = ['id', 'patient', 'doctor', 'schedule', 'doctor_details', 'patient_details', 
+                  'schedule_details', 'status', 'created_at', 'updated_at', 'notes']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'doctor_details', 'patient_details', 'schedule_details']
