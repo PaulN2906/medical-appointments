@@ -31,14 +31,28 @@ const routes = [
   {
     path: "/dashboard",
     name: "Dashboard",
-    component: PatientDashboard, // Determina tipul de dashboard in functie de rol
-    meta: { requiresAuth: true },
+    beforeEnter: (to, from, next) => {
+      const user = AuthService.getUser();
+      if (user && user.role === "doctor") {
+        next({ name: "DoctorDashboard" });
+      } else if (user && user.role === "patient") {
+        next({ name: "PatientDashboard" });
+      } else {
+        next({ name: "Login" });
+      }
+    },
   },
   {
     path: "/doctor-dashboard",
     name: "DoctorDashboard",
     component: DoctorDashboard,
     meta: { requiresAuth: true, role: "doctor" },
+  },
+  {
+    path: "/patient-dashboard",
+    name: "PatientDashboard",
+    component: PatientDashboard,
+    meta: { requiresAuth: true, role: "patient" },
   },
   {
     path: "/appointments",

@@ -45,6 +45,9 @@ export default {
           const userData = {
             id: response.data.user_id,
             email: response.data.email,
+            role: response.data.role,
+            first_name: response.data.first_name,
+            last_name: response.data.last_name,
           };
 
           AuthService.saveUserData(userData, token);
@@ -64,6 +67,9 @@ export default {
         const userData = {
           id: response.data.user_id,
           email: response.data.email,
+          role: response.data.role, // Important: rolul trebuie salvat
+          first_name: response.data.first_name,
+          last_name: response.data.last_name,
         };
 
         AuthService.saveUserData(userData, token);
