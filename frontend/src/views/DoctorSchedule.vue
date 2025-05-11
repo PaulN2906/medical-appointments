@@ -442,58 +442,44 @@ export default {
       saving.value = true;
 
       try {
+        // Get doctor_id from user data
+        const doctorId = currentUser.value.doctor_id;
+        if (!doctorId) {
+          error.value = "Doctor ID not found. Please login again.";
+          saving.value = false;
+          return;
+        }
+
         const scheduleData = {
-          doctor: currentUser.value.doctor_id,
+          doctor: doctorId, // Use the actual doctor ID
           date: slotForm.date,
           start_time: slotForm.startTime + ":00",
           end_time: slotForm.endTime + ":00",
-          is_available: true, // Setam la true pentru slot nou sau când anulam programarea existentă
+          is_available: true,
         };
 
         if (isEditing.value && currentSlotId.value) {
-          if (!slotForm.isAvailable && !slotForm.cancelAppointment) {
-            error.value =
-              "Cannot modify a booked slot unless you cancel the appointment";
-            saving.value = false;
-            return;
-          }
-
-          if (slotForm.cancelAppointment) {
-            // Daca anulam programarea, mai intai anulam
-            // TODO: ar trebui sa obtinem ID-ul programarii)
-            // await AppointmentService.cancelAppointment(appointmentId);
-
-            // Apoi actualizam slotul
-            await DoctorService.updateSchedule(
-              currentSlotId.value,
-              scheduleData
-            );
-          } else {
-            // Actualizam doar slotul daca este disponibil
-            await DoctorService.updateSchedule(
-              currentSlotId.value,
-              scheduleData
-            );
-          }
+          await DoctorService.updateSchedule(currentSlotId.value, scheduleData);
         } else {
-          // Cream un slot nou
           await DoctorService.createSchedule(scheduleData);
         }
 
-        // Reincarcam calendarul
+        // Reload calendar
         if (calendar.value) {
-          // Refreshing calendar
-          calendar.value.refreshCalendar();
+          calendar.value.loadSchedule();
         }
 
-        // Inchidem modalul
+        // Close modal
         const modalElement = document.getElementById("addSlotModal");
         const modal = bootstrap.Modal.getInstance(modalElement);
         modal.hide();
-      } catch (error) {
-        console.error("Failed to save slot", error);
+        // Reset form
+        resetSlotForm();
+      } catch (err) {
+        console.error("Failed to save slot", err);
         error.value =
-          error.response?.data?.error ||
+          err.response?.data?.error ||
+          err.response?.data?.doctor?.[0] ||
           "Failed to save slot. Please try again.";
       } finally {
         saving.value = false;

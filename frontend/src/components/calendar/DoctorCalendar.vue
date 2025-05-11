@@ -153,8 +153,10 @@ export default {
     const loadSchedule = async () => {
       loading.value = true;
       try {
+        // Use doctor_id from current user or from props
         const doctorIdToUse =
-          props.doctorId || (currentUser.value ? currentUser.value.id : null);
+          props.doctorId ||
+          (currentUser.value ? currentUser.value.doctor_id : null);
 
         if (!doctorIdToUse) {
           console.error("No doctor ID available");
@@ -163,7 +165,7 @@ export default {
 
         const response = await DoctorService.getSchedules(doctorIdToUse);
 
-        // Convertim datele din API pentru FullCalendar
+        // Convert data for FullCalendar
         events.value = response.data.map((schedule) => ({
           id: schedule.id,
           title: schedule.is_available ? "Available" : "Booked",

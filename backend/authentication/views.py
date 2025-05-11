@@ -44,29 +44,40 @@ class UserViewSet(viewsets.ModelViewSet):
     def login(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
-    
+        
         user = authenticate(username=username, password=password)
-    
+        
         if user is not None:
             profile = UserProfile.objects.get(user=user)
-        
+            
             if profile.two_fa_enabled:
                 return Response({
                     'message': '2FA required',
                     'user_id': user.id,
                     'requires_2fa': True
                 }, status=status.HTTP_200_OK)
-        
+            
             token, _ = Token.objects.get_or_create(user=user)
-        
+            
+            # Get additional IDs based on role
+            doctor_id = None
+            patient_id = None
+            
+            if profile.role == 'doctor' and hasattr(user, 'doctor'):
+                doctor_id = user.doctor.id
+            elif profile.role == 'patient' and hasattr(user, 'patient'):
+                patient_id = user.patient.id
+            
             return Response({
                 'token': token.key,
                 'user_id': user.id,
                 'email': user.email,
                 'requires_2fa': False,
-                'role': profile.role,  # Obtinem rolul din UserProfile
+                'role': profile.role,
                 'first_name': user.first_name,
-                'last_name': user.last_name
+                'last_name': user.last_name,
+                'doctor_id': doctor_id,
+                'patient_id': patient_id
             }, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -116,13 +127,23 @@ class UserViewSet(viewsets.ModelViewSet):
                 token, _ = Token.objects.get_or_create(user=user)
                 profile = UserProfile.objects.get(user=user)
                 
+                doctor_id = None
+                patient_id = None
+                
+                if profile.role == 'doctor' and hasattr(user, 'doctor'):
+                    doctor_id = user.doctor.id
+                elif profile.role == 'patient' and hasattr(user, 'patient'):
+                    patient_id = user.patient.id
+                
                 return Response({
                     'token': token.key,
                     'user_id': user.id,
                     'email': user.email,
-                    'role': profile.role,  # Obtine rolul din UserProfile
+                    'role': profile.role,
                     'first_name': user.first_name,
-                    'last_name': user.last_name
+                    'last_name': user.last_name,
+                    'doctor_id': doctor_id,
+                    'patient_id': patient_id
                 }, status=status.HTTP_200_OK)
             else:
                 return Response({'error': 'Invalid 2FA code'}, status=status.HTTP_401_UNAUTHORIZED)
