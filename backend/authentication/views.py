@@ -18,7 +18,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def register(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()  # aici parola e deja criptată
+            user = serializer.save()  # aici parola e deja criptata
             UserProfile.objects.create(user=user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -56,7 +56,7 @@ class UserViewSet(viewsets.ModelViewSet):
         user = request.user
         profile = UserProfile.objects.get(user=user)
         
-        # Genereaza o cheie secretă pentru TOTP
+        # Genereaza o cheie secreta pentru TOTP
         key = pyotp.random_base32()
         
         # Creeaza sau actualizeaza dispozitivul TOTP
