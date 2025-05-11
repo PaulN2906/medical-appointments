@@ -303,6 +303,7 @@
 </template>
 
 <script>
+import * as bootstrap from "bootstrap";
 import { ref, reactive, onMounted, computed } from "vue";
 import DoctorService from "@/services/doctor.service";
 import DoctorCalendar from "@/components/calendar/DoctorCalendar.vue";

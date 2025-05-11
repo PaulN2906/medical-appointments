@@ -1,10 +1,9 @@
-<!-- src/components/common/Navbar.vue -->
 <template>
   <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container">
-      <router-link class="navbar-brand" to="/"
-        >Medical Appointments</router-link
-      >
+      <router-link class="navbar-brand" to="/">
+        Medical Appointments
+      </router-link>
 
       <button
         class="navbar-toggler"
@@ -18,19 +17,24 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto">
           <li class="nav-item" v-if="isAuthenticated">
-            <router-link class="nav-link" to="/dashboard"
-              >Dashboard</router-link
-            >
+            <router-link class="nav-link" to="/dashboard">
+              Dashboard
+            </router-link>
           </li>
           <li class="nav-item" v-if="isAuthenticated && isDoctor">
-            <router-link class="nav-link" to="/doctor/schedule"
-              >My Schedule</router-link
-            >
+            <router-link class="nav-link" to="/doctor-schedule">
+              My Schedule
+            </router-link>
           </li>
           <li class="nav-item" v-if="isAuthenticated && isPatient">
-            <router-link class="nav-link" to="/appointments"
-              >My Appointments</router-link
-            >
+            <router-link class="nav-link" to="/appointments">
+              My Appointments
+            </router-link>
+          </li>
+          <li class="nav-item" v-if="isAuthenticated && isPatient">
+            <router-link class="nav-link" to="/book-appointment">
+              Book Appointment
+            </router-link>
           </li>
         </ul>
 
@@ -57,15 +61,17 @@
               aria-labelledby="userDropdown"
             >
               <li>
-                <router-link class="dropdown-item" to="/profile"
-                  >Profile</router-link
-                >
+                <router-link class="dropdown-item" to="/profile">
+                  Profile
+                </router-link>
               </li>
-              <li><hr class="dropdown-divider" /></li>
               <li>
-                <a class="dropdown-item" href="#" @click.prevent="logout"
-                  >Logout</a
-                >
+                <hr class="dropdown-divider" />
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" @click.prevent="logout">
+                  Logout
+                </a>
               </li>
             </ul>
           </li>
@@ -92,9 +98,8 @@ export default {
     );
     const currentUser = computed(() => store.getters["auth/currentUser"]);
 
-    // TODO: determinare rol utilizator din datele salvate
-    const isDoctor = computed(() => true); // Temporar
-    const isPatient = computed(() => true); // Temporar
+    const isDoctor = computed(() => currentUser.value?.role === "doctor");
+    const isPatient = computed(() => currentUser.value?.role === "patient");
 
     const logout = () => {
       store.dispatch("auth/logout");

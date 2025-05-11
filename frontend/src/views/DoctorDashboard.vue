@@ -1,4 +1,3 @@
-<!-- src/views/DoctorDashboard.vue -->
 <template>
   <div class="container my-4">
     <h1 class="mb-4">Doctor Dashboard</h1>
@@ -9,7 +8,7 @@
           <div class="card-body">
             <h5 class="card-title">My Schedule</h5>
             <p class="card-text">Manage your availability and working hours.</p>
-            <router-link to="/doctor/schedule" class="btn btn-primary"
+            <router-link to="/doctor-schedule" class="btn btn-primary"
               >Manage Schedule</router-link
             >
           </div>
@@ -141,7 +140,7 @@
               />
               <div class="text-center mt-3">
                 <router-link
-                  to="/doctor/schedule"
+                  to="/doctor-schedule"
                   class="btn btn-outline-primary"
                 >
                   Full Schedule View
