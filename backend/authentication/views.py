@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.contrib.auth.models import User
 from .models import UserProfile
+from doctors.models import Doctor
+from patients.models import Patient
 from .serializers import UserSerializer, UserProfileSerializer
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
@@ -18,8 +20,23 @@ class UserViewSet(viewsets.ModelViewSet):
     def register(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()  # aici parola e deja criptata
-            UserProfile.objects.create(user=user)
+            user = serializer.save()
+            
+            # Determina tipul de utilizator din request
+            user_type = request.data.get('user_type', 'patient')
+            
+            # Creeaza UserProfile cu rolul corespunzator
+            UserProfile.objects.create(user=user, role=user_type)
+            
+            # Creeaza Doctor sau Patient
+            if user_type == 'doctor':
+                Doctor.objects.create(
+                    user=user,
+                    speciality=request.data.get('speciality', 'General')
+                )
+            elif user_type == 'patient':
+                Patient.objects.create(user=user)
+            
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -27,26 +44,29 @@ class UserViewSet(viewsets.ModelViewSet):
     def login(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
-        
+    
         user = authenticate(username=username, password=password)
-        
+    
         if user is not None:
-            # Verificare daca 2FA este activat
             profile = UserProfile.objects.get(user=user)
+        
             if profile.two_fa_enabled:
                 return Response({
                     'message': '2FA required',
                     'user_id': user.id,
                     'requires_2fa': True
                 }, status=status.HTTP_200_OK)
-            
-            # Daca 2FA nu este activat, genereaza token direct
+        
             token, _ = Token.objects.get_or_create(user=user)
+        
             return Response({
                 'token': token.key,
                 'user_id': user.id,
                 'email': user.email,
-                'requires_2fa': False
+                'requires_2fa': False,
+                'role': profile.role,  # Obtinem rolul din UserProfile
+                'first_name': user.first_name,
+                'last_name': user.last_name
             }, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -94,10 +114,15 @@ class UserViewSet(viewsets.ModelViewSet):
             totp = pyotp.TOTP(device.key)
             if totp.verify(code):
                 token, _ = Token.objects.get_or_create(user=user)
+                profile = UserProfile.objects.get(user=user)
+                
                 return Response({
                     'token': token.key,
                     'user_id': user.id,
                     'email': user.email,
+                    'role': profile.role,  # Obtine rolul din UserProfile
+                    'first_name': user.first_name,
+                    'last_name': user.last_name
                 }, status=status.HTTP_200_OK)
             else:
                 return Response({'error': 'Invalid 2FA code'}, status=status.HTTP_401_UNAUTHORIZED)
