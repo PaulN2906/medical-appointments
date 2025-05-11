@@ -230,7 +230,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import DoctorService from "@/services/doctor.service";
 import AppointmentService from "@/services/appointment.service";
@@ -259,7 +259,7 @@ export default {
     const bookingError = ref("");
 
     // Obtine utilizatorul curent din store
-    const currentUser = store.getters["auth/currentUser"];
+    const currentUser = computed(() => store.getters["auth/currentUser"]);
 
     // Incarca lista medicilor
     const loadDoctors = async () => {
@@ -324,22 +324,55 @@ export default {
       bookingError.value = "";
 
       try {
+        // Get patient_id from current user
+        const patientId = currentUser.value.patient_id;
+        if (!patientId) {
+          bookingError.value = "Patient ID not found. Please login again.";
+          booking.value = false;
+          return;
+        }
+
         const appointmentData = {
           doctor: selectedDoctor.value.id,
-          patient: currentUser.id, // ID-ul pacientului trebuie sa fie disponibil
+          patient: patientId, // Use patient_id, not user id
           schedule: selectedSlot.value.id,
           notes: appointmentNotes.value,
         };
 
-        await AppointmentService.createAppointment(appointmentData);
+        console.log("Sending appointment data:", appointmentData);
 
-        // Redirectioneaza catre dashboard sau pagina de confirmare
+        const response = await AppointmentService.createAppointment(
+          appointmentData
+        );
+        console.log("Appointment created:", response.data);
+
+        // Redirect to confirmation page
         router.push("/appointment-confirmation");
       } catch (error) {
         console.error("Failed to book appointment", error);
-        bookingError.value =
-          error.response?.data?.error ||
-          "Failed to book appointment. Please try again.";
+        console.error("Error response:", error.response?.data);
+        // More detailed error handling
+        let errorMessage = "Failed to book appointment. Please try again.";
+        if (error.response?.data) {
+          const errorData = error.response.data;
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          } else if (errorData.detail) {
+            errorMessage = errorData.detail;
+          } else {
+            // Format validation errors
+            const errors = [];
+            for (const [field, messages] of Object.entries(errorData)) {
+              if (Array.isArray(messages)) {
+                errors.push(`${field}: ${messages.join(", ")}`);
+              }
+            }
+            if (errors.length > 0) {
+              errorMessage = errors.join("\n");
+            }
+          }
+        }
+        bookingError.value = errorMessage;
       } finally {
         booking.value = false;
       }
@@ -386,6 +419,7 @@ export default {
       bookAppointment,
       formatDate,
       formatTime,
+      currentUser,
     };
   },
 };

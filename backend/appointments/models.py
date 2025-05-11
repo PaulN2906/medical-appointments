@@ -4,7 +4,6 @@ from patients.models import Patient
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-# Create your models here.
 class Appointment(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
@@ -22,25 +21,49 @@ class Appointment(models.Model):
     notes = models.TextField(blank=True, null=True)
     
     class Meta:
-        unique_together = ('schedule', 'status')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['schedule'],
+                condition=models.Q(status__in=['pending', 'confirmed']),
+                name='unique_active_appointment_per_schedule'
+            )
+        ]
     
     def __str__(self):
         return f"Appointment: {self.patient} with {self.doctor} on {self.schedule.date}"
     
     def clean(self):
-        # Verifica daca programul este disponibil
+        # Verify schedule is available
         if not self.schedule.is_available and self.status != 'cancelled':
             raise ValidationError('This schedule is not available.')
+        
+        # Check for existing active appointments
+        if self.status in ['pending', 'confirmed']:
+            existing = Appointment.objects.filter(
+                schedule=self.schedule,
+                status__in=['pending', 'confirmed']
+            ).exclude(pk=self.pk)
+            
+            if existing.exists():
+                raise ValidationError('This schedule slot is already booked.')
     
     @transaction.atomic
     def save(self, *args, **kwargs):
-        # Implementam controlul tranzactiilor aici
-        # Blocam programul cand se face o programare
+        self.full_clean()  # Run validation
+        
+        # Update schedule availability based on appointment status
         if self.status in ['pending', 'confirmed']:
             self.schedule.is_available = False
             self.schedule.save()
         elif self.status == 'cancelled':
-            self.schedule.is_available = True
-            self.schedule.save()
+            # Check if there are other active appointments for this schedule
+            other_active = Appointment.objects.filter(
+                schedule=self.schedule,
+                status__in=['pending', 'confirmed']
+            ).exclude(pk=self.pk)
+            
+            if not other_active.exists():
+                self.schedule.is_available = True
+                self.schedule.save()
         
         super().save(*args, **kwargs)
