@@ -36,26 +36,22 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     
     @transaction.atomic
     def create(self, request, *args, **kwargs):
-        # Implementam logica de tranzactii pentru creare programare
         schedule_id = request.data.get('schedule')
         
-        # Verificam daca programul este disponibil
         try:
             schedule = Schedule.objects.select_for_update().get(id=schedule_id)
+            
+            # Check availability only for new appointments
             if not schedule.is_available:
                 return Response(
                     {'error': 'This schedule is no longer available'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # Marcam programul ca indisponibil
-            schedule.is_available = False
-            schedule.save()
-            
-            # Cream programarea
+            # Create appointment
             response = super().create(request, *args, **kwargs)
             
-            # Cream notificare pentru medic
+            # Create notification for doctor
             if response.status_code == status.HTTP_201_CREATED:
                 appointment = Appointment.objects.get(id=response.data['id'])
                 Notification.objects.create(

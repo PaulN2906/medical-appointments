@@ -33,11 +33,7 @@ class Appointment(models.Model):
         return f"Appointment: {self.patient} with {self.doctor} on {self.schedule.date}"
     
     def clean(self):
-        # Verify schedule is available
-        if not self.schedule.is_available and self.status != 'cancelled':
-            raise ValidationError('This schedule is not available.')
-        
-        # Check for existing active appointments
+        # Only prevent double booking
         if self.status in ['pending', 'confirmed']:
             existing = Appointment.objects.filter(
                 schedule=self.schedule,
@@ -49,8 +45,6 @@ class Appointment(models.Model):
     
     @transaction.atomic
     def save(self, *args, **kwargs):
-        self.full_clean()  # Run validation
-        
         # Update schedule availability based on appointment status
         if self.status in ['pending', 'confirmed']:
             self.schedule.is_available = False

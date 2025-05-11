@@ -21,7 +21,7 @@
             <h5 class="card-title">Pending Appointments</h5>
             <p class="card-text">Review and confirm pending appointments.</p>
             <router-link
-              to="/doctor/pending-appointments"
+              to="/appointments?filter=pending"
               class="btn btn-warning"
               >Review</router-link
             >
