@@ -43,6 +43,7 @@
 
             <div v-else>
               <DoctorCalendar
+                v-if="doctorId"
                 :doctorId="currentUser.doctor_id"
                 :editable="true"
                 :showUnavailable="showUnavailable"
@@ -50,6 +51,9 @@
                 @eventClick="handleEventClick"
                 ref="calendar"
               />
+              <div v-else class="alert alert-info">
+                Please log in as a doctor to manage your schedule
+              </div>
             </div>
           </div>
         </div>
@@ -349,6 +353,9 @@ export default {
 
     // Utilizatorul curent
     const currentUser = computed(() => store.getters["auth/currentUser"]);
+    const doctorId = computed(() => {
+      return currentUser.value?.doctor_id ?? null;
+    });
 
     // Zile ale saptamanii
     const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -644,6 +651,7 @@ export default {
       getSelectedDays,
       saveBulkSlots,
       currentUser,
+      doctorId,
     };
   },
 };
