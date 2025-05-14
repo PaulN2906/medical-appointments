@@ -43,6 +43,7 @@
 
             <div v-else>
               <DoctorCalendar
+                :doctorId="currentUser.doctor_id"
                 :editable="true"
                 :showUnavailable="showUnavailable"
                 @dateSelect="handleDateSelect"
@@ -452,11 +453,11 @@ export default {
         }
 
         const scheduleData = {
-          doctor: doctorId, // Use the actual doctor ID
+          doctor: doctorId,
           date: slotForm.date,
           start_time: slotForm.startTime + ":00",
           end_time: slotForm.endTime + ":00",
-          is_available: true,
+          is_available: slotForm.isAvailable,
         };
 
         if (isEditing.value && currentSlotId.value) {
@@ -464,27 +465,30 @@ export default {
         } else {
           await DoctorService.createSchedule(scheduleData);
         }
-
-        // Reload calendar
-        if (calendar.value) {
-          calendar.value.reloadSchedule();
-        }
-
-        // Close modal
-        const modalElement = document.getElementById("addSlotModal");
-        const modal = bootstrap.Modal.getInstance(modalElement);
-        modal.hide();
-        // Reset form
-        resetSlotForm();
       } catch (err) {
         console.error("Failed to save slot", err);
         error.value =
           err.response?.data?.error ||
-          err.response?.data?.doctor?.[0] ||
+          (Array.isArray(err.response?.data?.doctor)
+            ? err.response.data.doctor[0]
+            : err.response?.data?.detail) ||
           "Failed to save slot. Please try again.";
-      } finally {
         saving.value = false;
+        return;
       }
+      // Reload calendar
+      if (calendar.value?.reloadSchedule) {
+        try {
+          await calendar.value.reloadSchedule();
+        } catch (reloadErr) {
+          console.warn("Slot saved, but calendar failed to reload:", reloadErr);
+        }
+      }
+
+      const modalElement = document.getElementById("addSlotModal");
+      bootstrap.Modal.getInstance(modalElement).hide();
+      resetSlotForm();
+      saving.value = false;
     };
 
     // Adauga un nou rand de time slot in formularul pentru sloturi multiple
@@ -639,6 +643,7 @@ export default {
       calculateDays,
       getSelectedDays,
       saveBulkSlots,
+      currentUser,
     };
   },
 };

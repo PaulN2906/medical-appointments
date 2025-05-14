@@ -110,7 +110,7 @@ export default {
   props: {
     doctorId: {
       type: Number,
-      default: null,
+      required: true,
     },
     editable: {
       type: Boolean,
@@ -126,7 +126,7 @@ export default {
     const store = useStore();
     const loading = ref(true);
     // ref pentru acces la instanta FullCalendar
-    const caledarRef = ref(null);
+    const calendarRef = ref(null);
     const events = ref([]);
     const filteredEvents = computed(() => {
       return props.showUnavailable
@@ -250,8 +250,9 @@ export default {
     // Salvam programul (adaugare sau editare)
     const saveSchedule = async () => {
       try {
+        const doctorIdToUse = props.doctorId;
         const scheduleData = {
-          doctor: props.doctorId || currentUser.value.id,
+          doctor: doctorIdToUse,
           date: scheduleForm.value.date,
           start_time: scheduleForm.value.startTime + ":00",
           end_time: scheduleForm.value.endTime + ":00",
@@ -266,34 +267,46 @@ export default {
         } else {
           await DoctorService.createSchedule(scheduleData);
         }
-
-        // Reincarca programul
-        await loadSchedule();
-
-        // Inchide modalul
-        const modalElement = document.getElementById("scheduleModal");
-        const modal = bootstrap.Modal.getInstance(modalElement);
-        modal.hide();
-      } catch (error) {
-        console.error("Failed to save schedule", error);
-        alert("Failed to save schedule. Please try again.");
+      } catch (err) {
+        console.error("Failed to save schedule", err);
+        // show server message if available
+        const msg =
+          err.response?.data?.error ||
+          err.response?.data?.detail ||
+          err.message ||
+          "Please try again.";
+        alert("Failed to save schedule: " + msg);
+        return;
       }
+
+      try {
+        await loadSchedule();
+      } catch (reloadErr) {
+        console.warn(
+          "Schedule saved, but failed to reload calendar:",
+          reloadErr
+        );
+      }
+
+      // close the modal
+      const modalEl = document.getElementById("scheduleModal");
+      bootstrap.Modal.getInstance(modalEl).hide();
     };
 
-    // expunde doua metode catre componenta parinte
-    const refreshCalendar = () => {
-      caledarRef.value?.getApi().refetchEvents();
-    };
+    // expunem doua metode catre componenta parinte
+    function refreshCalendar() {
+      calendarRef.value?.getApi().refetchEvents();
+    }
 
-    const reloadSchedule = async () => {
+    async function reloadSchedule() {
       await loadSchedule();
-      caledarRef.value?.getApi().refetchEvents();
-    };
+      calendarRef.value?.getApi().refetchEvents();
+    }
 
     watch(
       () => props.showUnavailable,
       () => {
-        caledarRef.value?.getApi().refetchEvents();
+        calendarRef.value?.getApi().refetchEvents();
       }
     );
 
@@ -306,7 +319,7 @@ export default {
 
     return {
       loading,
-      caledarRef,
+      calendarRef,
       calendarOptions,
       isEditing,
       scheduleForm,

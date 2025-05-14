@@ -22,7 +22,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     serializer_class = ScheduleSerializer
     permission_classes = [permissions.IsAuthenticated]
     
-    @method_decorator(cache_page(60*5))  # Cache pentru 5 minute
+    # @method_decorator(cache_page(60*5))  # Cache pentru 5 minute, dezactivat momentan
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
     
