@@ -10,7 +10,7 @@
 
     <div v-else>
       <div class="doctor-calendar-wrapper mb-4">
-        <FullCalendar :options="calendarOptions" />
+        <FullCalendar ref="calendarRef" :options="calendarOptions" />
       </div>
     </div>
 
@@ -92,7 +92,7 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, defineExpose, watch } from "vue";
 import { useStore } from "vuex";
 import FullCalendar from "@fullcalendar/vue3";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -116,12 +116,23 @@ export default {
       type: Boolean,
       default: false,
     },
+    showUnavailable: {
+      type: Boolean,
+      default: true,
+    },
   },
 
   setup(props) {
     const store = useStore();
     const loading = ref(true);
+    // ref pentru acces la instanta FullCalendar
+    const caledarRef = ref(null);
     const events = ref([]);
+    const filteredEvents = computed(() => {
+      return props.showUnavailable
+        ? events.value
+        : events.value.filter((evt) => evt.extendedProps.isAvailable);
+    });
     const isEditing = ref(false);
     const currentScheduleId = ref(null);
     const scheduleForm = ref({
@@ -143,7 +154,7 @@ export default {
         center: "title",
         right: "dayGridMonth,timeGridWeek,timeGridDay",
       },
-      events: events.value,
+      events: filteredEvents.value,
       selectable: props.editable,
       editable: props.editable,
       select: handleDateSelect,
@@ -269,12 +280,33 @@ export default {
       }
     };
 
+    // expunde doua metode catre componenta parinte
+    const refreshCalendar = () => {
+      caledarRef.value?.getApi().refetchEvents();
+    };
+
+    const reloadSchedule = async () => {
+      await loadSchedule();
+      caledarRef.value?.getApi().refetchEvents();
+    };
+
+    watch(
+      () => props.showUnavailable,
+      () => {
+        caledarRef.value?.getApi().refetchEvents();
+      }
+    );
+
+    // permitem parintelui sa apeleze metodele de mai sus
+    defineExpose({ refreshCalendar, reloadSchedule });
+
     onMounted(() => {
       loadSchedule();
     });
 
     return {
       loading,
+      caledarRef,
       calendarOptions,
       isEditing,
       scheduleForm,

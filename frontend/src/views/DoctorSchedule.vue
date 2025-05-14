@@ -44,6 +44,7 @@
             <div v-else>
               <DoctorCalendar
                 :editable="true"
+                :showUnavailable="showUnavailable"
                 @dateSelect="handleDateSelect"
                 @eventClick="handleEventClick"
                 ref="calendar"
@@ -466,7 +467,7 @@ export default {
 
         // Reload calendar
         if (calendar.value) {
-          calendar.value.loadSchedule();
+          calendar.value.reloadSchedule();
         }
 
         // Close modal
