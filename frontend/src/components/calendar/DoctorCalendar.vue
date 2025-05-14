@@ -120,9 +120,15 @@ export default {
       type: Boolean,
       default: true,
     },
+    allowSelect: {
+      type: Boolean,
+      default: false,
+    },
   },
 
-  setup(props) {
+  emits: ["dateSelect", "eventClick", "selectSlot"],
+
+  setup(props, { emit }) {
     const store = useStore();
     const loading = ref(true);
     // ref pentru acces la instanta FullCalendar
@@ -225,6 +231,18 @@ export default {
 
     // Gestionam click pe un eveniment (pentru editare)
     const handleEventClick = (info) => {
+      const isAvailable = info.event.extendedProps.isAvailable;
+      // daca allowSelect e true si slotul e disponibil, trimitem datele inapoi
+      if (props.allowSelect && isAvailable) {
+        emit("selectSlot", {
+          id: info.event.id,
+          date: info.event.startStr.split("T")[0],
+          start_time: info.event.startStr.split("T")[1].substr(0, 5),
+          end_time: info.event.endStr.split("T")[1].substr(0, 5),
+        });
+        return;
+      }
+
       if (!props.editable) return;
 
       isEditing.value = true;
