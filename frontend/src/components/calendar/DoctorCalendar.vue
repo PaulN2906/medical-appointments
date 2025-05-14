@@ -9,7 +9,9 @@
     </div>
 
     <div v-else>
-      <FullCalendar :options="calendarOptions" class="doctor-calendar" />
+      <div class="doctor-calendar-wrapper mb-4">
+        <FullCalendar :options="calendarOptions" />
+      </div>
     </div>
 
     <!-- Modal pentru adaugare/editare program -->
@@ -147,6 +149,8 @@ export default {
       select: handleDateSelect,
       eventClick: handleEventClick,
       height: "auto",
+      contentHeight: "auto",
+      expandRows: true,
     }));
 
     // Incarcam programul medicului
@@ -281,8 +285,7 @@ export default {
 </script>
 
 <style>
-.doctor-calendar {
-  height: 600px;
-  margin-bottom: 30px;
+.doctor-calendar-wrapper {
+  margin-bottom: 2.5rem;
 }
 </style>

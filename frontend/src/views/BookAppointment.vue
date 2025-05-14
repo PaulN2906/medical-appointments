@@ -84,11 +84,13 @@
                 </div>
               </div>
 
-              <DoctorCalendar
-                :doctorId="selectedDoctor.id"
-                :editable="false"
-                @selectSlot="selectTimeSlot"
-              />
+              <div class="doctor-calendar-wrapper mb-4">
+                <DoctorCalendar
+                  :doctorId="selectedDoctor.id"
+                  :editable="false"
+                  @selectSlot="selectTimeSlot"
+                />
+              </div>
 
               <div class="mt-4">
                 <h4>Available Time Slots</h4>
@@ -440,5 +442,9 @@ export default {
   border-color: #28a745;
   background-color: #f8fff8;
   box-shadow: 0 4px 8px rgba(40, 167, 69, 0.2);
+}
+
+.doctor-calendar-wrapper {
+  margin-bottom: 2.5rem;
 }
 </style>
