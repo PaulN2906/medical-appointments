@@ -176,9 +176,15 @@ class EmailService:
             bool: True if email was sent successfully, False otherwise
         """
         try:
+            # Create a simple object-like structure for consistency with _generate_html_content
+            class MockObject:
+                def __init__(self, **kwargs):
+                    for key, value in kwargs.items():
+                        setattr(self, key, value)
+            
             context = {
-                'user': {'first_name': 'Test User', 'username': 'testuser'},
-                'notification': {'title': subject, 'message': message}
+                'user': MockObject(first_name='Test User', username='testuser'),
+                'notification': MockObject(title=subject, message=message)
             }
             
             html_content = EmailService._generate_html_content(context)
