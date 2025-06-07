@@ -16,9 +16,19 @@ export default {
     return api.post("auth/users/change_password/", passwordData);
   },
 
-  // Update notification preferences (placeholder for future implementation)
+  // Get notification preferences
+  getNotificationPreferences() {
+    return api.get("auth/users/get_notification_preferences/");
+  },
+
+  // Update notification preferences
   updateNotificationPreferences(preferences) {
-    return api.put("auth/users/notification_preferences/", preferences);
+    return api.put("auth/users/update_notification_preferences/", preferences);
+  },
+
+  // Reset notification preferences to defaults
+  resetNotificationPreferences() {
+    return api.post("auth/users/reset_notification_preferences/");
   },
 
   // Get user activity/security info (placeholder for future implementation)

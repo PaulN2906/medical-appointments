@@ -2,10 +2,10 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.contrib.auth.models import User
-from .models import UserProfile
+from .models import UserProfile, NotificationPreferences
 from doctors.models import Doctor
 from patients.models import Patient
-from .serializers import UserSerializer, UserProfileSerializer
+from .serializers import UserSerializer, NotificationPreferencesSerializer
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from django_otp.plugins.otp_totp.models import TOTPDevice
@@ -363,4 +363,93 @@ class UserViewSet(viewsets.ModelViewSet):
             'message': 'Password changed successfully',
             'token': new_token.key  # Return new token since old ones are invalidated
         }, status=status.HTTP_200_OK)
-    
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def get_notification_preferences(self, request):
+        """Get user's notification preferences"""
+        user = request.user
+        
+        # Get or create notification preferences
+        preferences, created = NotificationPreferences.objects.get_or_create(
+            user=user,
+            defaults={
+                'email_enabled': True,
+                'appointment_confirmations': True,
+                'appointment_reminders': True,
+                'appointment_cancellations': True,
+                'system_notifications': True,
+                'status_updates': True,
+                'reminder_hours_before': 24,
+                'marketing_emails': False,
+            }
+        )
+        
+        serializer = NotificationPreferencesSerializer(preferences)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['put'], permission_classes=[permissions.IsAuthenticated])
+    def update_notification_preferences(self, request):
+        """Update user's notification preferences"""
+        user = request.user
+        
+        try:
+            # Get or create preferences
+            preferences, created = NotificationPreferences.objects.get_or_create(
+                user=user,
+                defaults={
+                    'email_enabled': True,
+                    'appointment_confirmations': True,
+                    'appointment_reminders': True,
+                    'appointment_cancellations': True,
+                    'system_notifications': True,
+                    'status_updates': True,
+                    'reminder_hours_before': 24,
+                    'marketing_emails': False,
+                }
+            )
+            
+            # Update with provided data
+            serializer = NotificationPreferencesSerializer(preferences, data=request.data, partial=True)
+            
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to update notification preferences: {str(e)}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def reset_notification_preferences(self, request):
+        """Reset notification preferences to defaults"""
+        user = request.user
+        
+        try:
+            preferences, created = NotificationPreferences.objects.get_or_create(user=user)
+            
+            # Reset to defaults
+            preferences.email_enabled = True
+            preferences.appointment_confirmations = True
+            preferences.appointment_reminders = True
+            preferences.appointment_cancellations = True
+            preferences.system_notifications = True
+            preferences.status_updates = True
+            preferences.reminder_hours_before = 24
+            preferences.marketing_emails = False
+            preferences.save()
+            
+            serializer = NotificationPreferencesSerializer(preferences)
+            return Response({
+                'message': 'Notification preferences reset to defaults',
+                'preferences': serializer.data
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to reset preferences: {str(e)}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
