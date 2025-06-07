@@ -40,6 +40,16 @@
           <div class="card-body">
             <!-- Personal Information Tab -->
             <div v-if="activeTab === 'personal'">
+              <div v-if="loadingProfile" class="text-center p-4">
+                <div class="spinner-border" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              </div>
+
+              <div v-else-if="personalInfoError" class="alert alert-danger">
+                {{ personalInfoError }}
+              </div>
+
               <form @submit.prevent="savePersonalInfo">
                 <div class="row mb-3">
                   <div class="col-md-6">
@@ -398,6 +408,7 @@
 import { ref, reactive, onMounted, computed } from "vue";
 import { useStore } from "vuex";
 import AuthService from "@/services/auth.service";
+import UserService from "@/services/user.service";
 
 export default {
   name: "Profile",
@@ -406,17 +417,23 @@ export default {
     const store = useStore();
     const activeTab = ref("personal");
 
-    // Starea utilizatorului curent
+    // Loading states
+    const loadingProfile = ref(true);
+    const loading2FAStatus = ref(true);
+
+    // Current user from store
     const currentUser = computed(() => store.getters["auth/currentUser"]);
     const userType = computed(() => {
       return currentUser.value?.role || "patient";
     });
 
-    // Starea 2FA
+    // 2FA status
     const is2FAEnabled = ref(false);
-    const loading2FAStatus = ref(true);
 
-    // Formulare pentru diferite secțiuni
+    // Complete profile data
+    const profileData = ref({});
+
+    // Form data (reactive for two-way binding)
     const personalInfo = reactive({
       firstName: "",
       lastName: "",
@@ -439,16 +456,19 @@ export default {
       statusUpdates: true,
     });
 
-    // Stari pentru salvarea formularelor
+    // Form states
     const savingPersonalInfo = ref(false);
     const personalInfoSaved = ref(false);
+    const personalInfoError = ref("");
+
     const savingPassword = ref(false);
     const passwordChanged = ref(false);
     const passwordError = ref("");
+
     const savingNotificationPrefs = ref(false);
     const notificationPrefsSaved = ref(false);
 
-    // Computed pentru validarea formularului de parola
+    // Computed validations
     const isPasswordFormValid = computed(() => {
       return (
         passwordForm.currentPassword &&
@@ -459,105 +479,135 @@ export default {
       );
     });
 
-    // Incarca datele utilizatorului
-    const loadUserData = () => {
-      if (currentUser.value) {
-        personalInfo.firstName = currentUser.value.first_name || "";
-        personalInfo.lastName = currentUser.value.last_name || "";
-        personalInfo.email = currentUser.value.email || "";
+    // Load complete user profile from server
+    const loadUserProfile = async () => {
+      try {
+        const response = await UserService.getUserProfile();
+        profileData.value = response.data;
 
-        // In implementarea reala, ai incarca si celelalte date din profil
-        personalInfo.phone = ""; // placeholder
-        personalInfo.birthDate = ""; // placeholder
-        personalInfo.speciality = ""; // pentru medici
-        personalInfo.description = ""; // pentru medici
+        // Populate form fields
+        personalInfo.firstName = profileData.value.first_name || "";
+        personalInfo.lastName = profileData.value.last_name || "";
+        personalInfo.email = profileData.value.email || "";
+        personalInfo.phone = profileData.value.phone_number || "";
 
-        // Placeholder pentru preferintele de notificare
-        notificationPrefs.email = true;
-        notificationPrefs.reminders = true;
-        notificationPrefs.statusUpdates = true;
+        // Role-specific fields
+        if (userType.value === "doctor") {
+          personalInfo.speciality = profileData.value.speciality || "";
+          personalInfo.description = profileData.value.description || "";
+        } else if (userType.value === "patient") {
+          personalInfo.birthDate = profileData.value.date_of_birth || "";
+        }
+
+        // TODO: Load notification preferences when backend is ready
+        // For now, keep defaults
+      } catch (error) {
+        console.error("Failed to load user profile:", error);
+        personalInfoError.value =
+          "Failed to load profile data. Please refresh the page.";
+      } finally {
+        loadingProfile.value = false;
       }
     };
 
-    // Incarca statusul 2FA
+    // Load 2FA status
     const load2FAStatus = async () => {
       try {
         const response = await AuthService.get2FAStatus();
         is2FAEnabled.value = response.data.two_fa_enabled;
       } catch (error) {
         console.error("Failed to load 2FA status", error);
-        // Fallback la informatia din localStorage
+        // Fallback to localStorage data
         is2FAEnabled.value = currentUser.value?.two_fa_enabled || false;
       } finally {
         loading2FAStatus.value = false;
       }
     };
 
-    // Obtine titlul pentru tabul activ
+    // Get active tab title
     const getActiveTabTitle = () => {
       const titles = {
         personal: "Personal Information",
         security: "Security Settings",
         notifications: "Notification Preferences",
       };
-
       return titles[activeTab.value] || "Settings";
     };
 
-    // Formateaza data ultimei autentificari
+    // Format last login date
     const formatLastLogin = () => {
-      // Placeholder - in implementarea reală ai primi aceasta de la server
-      const lastLogin = new Date();
-      lastLogin.setHours(lastLogin.getHours() - 2); // Simuleaza acum 2 ore
-
-      return lastLogin.toLocaleString("ro-RO", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      if (profileData.value.last_login) {
+        const lastLogin = new Date(profileData.value.last_login);
+        return lastLogin.toLocaleString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+      return "Never";
     };
 
-    // Salveaza informatiile personale
+    // Save personal information
     const savePersonalInfo = async () => {
       savingPersonalInfo.value = true;
       personalInfoSaved.value = false;
+      personalInfoError.value = "";
 
       try {
-        // TODO: request catre server
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulam un delay
+        const updateData = {
+          first_name: personalInfo.firstName,
+          last_name: personalInfo.lastName,
+          phone_number: personalInfo.phone,
+        };
 
-        // TODO: Actualizam utilizatorul in store
-        //const updatedUser = {
-        //  ...currentUser.value,
-        //  first_name: personalInfo.firstName,
-        //  last_name: personalInfo.lastName,
-        //  // etc.
-        //};
+        // Add role-specific data
+        if (userType.value === "doctor") {
+          updateData.speciality = personalInfo.speciality;
+          updateData.description = personalInfo.description;
+        } else if (userType.value === "patient") {
+          updateData.date_of_birth = personalInfo.birthDate;
+        }
 
-        // TODO: actualizare utilizator in store
-        // store.commit('auth/setUser', updatedUser);
+        const response = await UserService.updateProfile(updateData);
+
+        // Update local profile data
+        profileData.value = response.data;
+
+        // Update store with new user data
+        const updatedUser = {
+          ...currentUser.value,
+          first_name: response.data.first_name,
+          last_name: response.data.last_name,
+        };
+        store.commit("auth/setUser", updatedUser);
+
+        // Update localStorage
+        AuthService.saveUserData(updatedUser, localStorage.getItem("token"));
 
         personalInfoSaved.value = true;
 
-        // Ascunde mesajul de success dupa 3 secunde
+        // Hide success message after 3 seconds
         setTimeout(() => {
           personalInfoSaved.value = false;
         }, 3000);
       } catch (error) {
-        console.error("Failed to save personal information", error);
+        console.error("Failed to save personal information:", error);
+        personalInfoError.value =
+          error.response?.data?.error ||
+          "Failed to save personal information. Please try again.";
       } finally {
         savingPersonalInfo.value = false;
       }
     };
 
-    // Schimba parola
+    // Change password
     const changePassword = async () => {
       passwordError.value = "";
       passwordChanged.value = false;
 
-      // Valideaza noua parola
+      // Client-side validation
       if (passwordForm.newPassword !== passwordForm.confirmPassword) {
         passwordError.value = "Passwords do not match";
         return;
@@ -571,8 +621,16 @@ export default {
       savingPassword.value = true;
 
       try {
-        // TODO: request catre server
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulăm un delay
+        const response = await UserService.changePassword({
+          current_password: passwordForm.currentPassword,
+          new_password: passwordForm.newPassword,
+        });
+
+        // Update token if returned (old tokens are invalidated)
+        if (response.data.token) {
+          localStorage.setItem("token", response.data.token);
+          store.commit("auth/setToken", response.data.token);
+        }
 
         passwordChanged.value = true;
 
@@ -581,64 +639,83 @@ export default {
         passwordForm.newPassword = "";
         passwordForm.confirmPassword = "";
 
-        // Ascunde mesajul de success dupa 3 secunde
+        // Hide success message after 3 seconds
         setTimeout(() => {
           passwordChanged.value = false;
         }, 3000);
       } catch (error) {
-        console.error("Failed to change password", error);
-        passwordError.value =
-          error.response?.data?.error ||
-          "Failed to change password. Please try again.";
+        console.error("Failed to change password:", error);
+        const errorData = error.response?.data;
+
+        if (Array.isArray(errorData?.error)) {
+          passwordError.value = errorData.error.join(". ");
+        } else {
+          passwordError.value =
+            errorData?.error || "Failed to change password. Please try again.";
+        }
       } finally {
         savingPassword.value = false;
       }
     };
 
-    // Salveaza preferintele de notificare
+    // Save notification preferences (placeholder - will implement when backend is ready)
     const saveNotificationPrefs = async () => {
       savingNotificationPrefs.value = true;
       notificationPrefsSaved.value = false;
 
       try {
-        // TODO: request catre server
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulam un delay
+        // TODO: Implement when notification preferences backend is ready
+        // await UserService.updateNotificationPreferences(notificationPrefs);
+
+        // For now, simulate success
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         notificationPrefsSaved.value = true;
 
-        // Ascunde mesajul de success dupa 3 secunde
         setTimeout(() => {
           notificationPrefsSaved.value = false;
         }, 3000);
       } catch (error) {
-        console.error("Failed to save notification preferences", error);
+        console.error("Failed to save notification preferences:", error);
       } finally {
         savingNotificationPrefs.value = false;
       }
     };
 
+    // Initialize component
     onMounted(() => {
-      loadUserData();
+      loadUserProfile();
       load2FAStatus();
     });
 
     return {
+      // State
       activeTab,
+      loadingProfile,
       currentUser,
       userType,
       is2FAEnabled,
-      loading2FAStatus,
+      profileData,
+
+      // Forms
       personalInfo,
       passwordForm,
       notificationPrefs,
+
+      // Form states
       savingPersonalInfo,
       personalInfoSaved,
+      personalInfoError,
       savingPassword,
       passwordChanged,
       passwordError,
       savingNotificationPrefs,
       notificationPrefsSaved,
+
+      // Computed
       isPasswordFormValid,
+
+      // Methods
       getActiveTabTitle,
       formatLastLogin,
       savePersonalInfo,
@@ -648,7 +725,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-/* Stilizare specifica pentru pagina de profil */
-</style>
