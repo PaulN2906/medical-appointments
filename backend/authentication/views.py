@@ -10,6 +10,9 @@ from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from django_otp.plugins.otp_totp.models import TOTPDevice
 import pyotp
+import qrcode
+import io
+import base64
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -77,7 +80,8 @@ class UserViewSet(viewsets.ModelViewSet):
                 'first_name': user.first_name,
                 'last_name': user.last_name,
                 'doctor_id': doctor_id,
-                'patient_id': patient_id
+                'patient_id': patient_id,
+                'two_fa_enabled': profile.two_fa_enabled
             }, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -87,30 +91,96 @@ class UserViewSet(viewsets.ModelViewSet):
         user = request.user
         profile = UserProfile.objects.get(user=user)
         
+        if profile.two_fa_enabled:
+            return Response({'error': '2FA is already enabled'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Sterge dispozitivele TOTP existente
+        TOTPDevice.objects.filter(user=user).delete()
+        
         # Genereaza o cheie secreta pentru TOTP
         key = pyotp.random_base32()
         
-        # Creeaza sau actualizeaza dispozitivul TOTP
-        device, created = TOTPDevice.objects.get_or_create(
+        # Creeaza dispozitivul TOTP (dar nu il confirma inca)
+        device = TOTPDevice.objects.create(
             user=user,
-            defaults={'name': f"{user.username}'s device", 'confirmed': True}
+            name=f"{user.username}'s device",
+            key=key,
+            confirmed=False
         )
-        device.key = key
-        device.save()
-        
-        profile.two_fa_enabled = True
-        profile.save()
         
         # Genereaza un URL pentru configurarea aplicatiei de autentificare
         totp_url = pyotp.totp.TOTP(key).provisioning_uri(
             name=user.email,
-            issuer_name="MedicalAppointments"
+            issuer_name="Medical Appointments System"
         )
         
+        # Genereaza QR code
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(totp_url)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        
+        qr_code_base64 = base64.b64encode(buffer.getvalue()).decode()
+        qr_code_url = f"data:image/png;base64,{qr_code_base64}"
+        
         return Response({
-            'message': '2FA has been enabled',
+            'message': '2FA setup initiated',
             'key': key,
-            'totp_url': totp_url
+            'totp_url': totp_url,
+            'qr_code': qr_code_url
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def confirm_2fa(self, request):
+        user = request.user
+        code = request.data.get('code')
+        
+        if not code:
+            return Response({'error': 'Verification code is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Gaseste dispozitivul TOTP neconfirmat
+            device = TOTPDevice.objects.get(user=user, confirmed=False)
+            
+            totp = pyotp.TOTP(device.key)
+            if totp.verify(code, valid_window=1):  # Allow 1 step tolerance
+                # Confirma dispozitivul si activeaza 2FA
+                device.confirmed = True
+                device.save()
+                
+                profile = UserProfile.objects.get(user=user)
+                profile.two_fa_enabled = True
+                profile.save()
+                
+                return Response({
+                    'message': '2FA has been enabled successfully'
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({'error': 'Invalid verification code'}, status=status.HTTP_400_BAD_REQUEST)
+        except TOTPDevice.DoesNotExist:
+            return Response({'error': 'No pending 2FA setup found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def disable_2fa(self, request):
+        user = request.user
+        profile = UserProfile.objects.get(user=user)
+        
+        if not profile.two_fa_enabled:
+            return Response({'error': '2FA is not enabled'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Sterge toate dispozitivele TOTP
+        TOTPDevice.objects.filter(user=user).delete()
+        
+        # Dezactiveaza 2FA in profil
+        profile.two_fa_enabled = False
+        profile.save()
+        
+        return Response({
+            'message': '2FA has been disabled'
         }, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
@@ -118,12 +188,15 @@ class UserViewSet(viewsets.ModelViewSet):
         user_id = request.data.get('user_id')
         code = request.data.get('code')
         
+        if not user_id or not code:
+            return Response({'error': 'User ID and code are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
         try:
             user = User.objects.get(id=user_id)
-            device = TOTPDevice.objects.get(user=user)
+            device = TOTPDevice.objects.get(user=user, confirmed=True)
             
             totp = pyotp.TOTP(device.key)
-            if totp.verify(code):
+            if totp.verify(code, valid_window=1):
                 token, _ = Token.objects.get_or_create(user=user)
                 profile = UserProfile.objects.get(user=user)
                 
@@ -143,9 +216,20 @@ class UserViewSet(viewsets.ModelViewSet):
                     'first_name': user.first_name,
                     'last_name': user.last_name,
                     'doctor_id': doctor_id,
-                    'patient_id': patient_id
+                    'patient_id': patient_id,
+                    'two_fa_enabled': profile.two_fa_enabled
                 }, status=status.HTTP_200_OK)
             else:
                 return Response({'error': 'Invalid 2FA code'}, status=status.HTTP_401_UNAUTHORIZED)
         except (User.DoesNotExist, TOTPDevice.DoesNotExist):
             return Response({'error': 'User or device not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def get_2fa_status(self, request):
+        user = request.user
+        profile = UserProfile.objects.get(user=user)
+        
+        return Response({
+            'two_fa_enabled': profile.two_fa_enabled,
+            'has_totp_device': TOTPDevice.objects.filter(user=user, confirmed=True).exists()
+        }, status=status.HTTP_200_OK)

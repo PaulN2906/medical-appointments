@@ -8,6 +8,7 @@ import BookAppointment from "../views/BookAppointment.vue";
 import AppointmentDetails from "../views/AppointmentDetails.vue";
 import Profile from "../views/Profile.vue";
 import AppointmentConfirmation from "../views/AppointmentConfirmation.vue";
+import TwoFactorAuth from "../views/TwoFactorAuth.vue";
 import AuthService from "@/services/auth.service";
 
 const routes = [
@@ -89,6 +90,12 @@ const routes = [
     path: "/profile",
     name: "Profile",
     component: Profile,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/security/2fa",
+    name: "TwoFactorAuth",
+    component: TwoFactorAuth,
     meta: { requiresAuth: true },
   },
 ];

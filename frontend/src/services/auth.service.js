@@ -13,8 +13,24 @@ export default {
     return api.post("auth/users/verify_2fa/", { user_id: userId, code });
   },
 
+  // Initializeaza procesul de activare 2FA
   enable2FA() {
     return api.post("auth/users/enable_2fa/");
+  },
+
+  // Confirma activarea 2FA cu codul de verificare
+  confirm2FA(code) {
+    return api.post("auth/users/confirm_2fa/", { code });
+  },
+
+  // Dezactiveaza 2FA
+  disable2FA() {
+    return api.post("auth/users/disable_2fa/");
+  },
+
+  // Obtine statusul 2FA
+  get2FAStatus() {
+    return api.get("auth/users/get_2fa_status/");
   },
 
   logout() {

@@ -146,25 +146,40 @@
             <div v-if="activeTab === 'security'">
               <h5>Two-Factor Authentication</h5>
               <div
-                class="d-flex justify-content-between align-items-center mb-4"
+                class="d-flex justify-content-between align-items-center mb-4 p-3 border rounded"
               >
                 <div>
-                  <p class="mb-0">
-                    {{
-                      is2FAEnabled
-                        ? "Two-factor authentication is enabled."
-                        : "Two-factor authentication is not enabled."
-                    }}
-                  </p>
+                  <div class="d-flex align-items-center mb-2">
+                    <i
+                      :class="
+                        is2FAEnabled
+                          ? 'bi bi-shield-check text-success'
+                          : 'bi bi-shield-exclamation text-warning'
+                      "
+                      class="me-2 fs-5"
+                    ></i>
+                    <strong>
+                      {{
+                        is2FAEnabled
+                          ? "Two-factor authentication is enabled"
+                          : "Two-factor authentication is disabled"
+                      }}
+                    </strong>
+                  </div>
                   <small class="text-muted">
                     {{
                       is2FAEnabled
-                        ? "Your account is more secure."
-                        : "Enable for additional security."
+                        ? "Your account has enhanced security protection."
+                        : "Enable 2FA to add an extra layer of security to your account."
                     }}
                   </small>
                 </div>
-                <router-link to="/security/2fa" class="btn btn-outline-primary">
+                <router-link
+                  to="/security/2fa"
+                  class="btn"
+                  :class="is2FAEnabled ? 'btn-outline-primary' : 'btn-warning'"
+                >
+                  <i class="bi bi-gear me-2"></i>
                   {{ is2FAEnabled ? "Manage 2FA" : "Enable 2FA" }}
                 </router-link>
               </div>
@@ -172,6 +187,10 @@
               <hr />
 
               <h5>Change Password</h5>
+              <p class="text-muted mb-3">
+                Choose a strong password to keep your account secure.
+              </p>
+
               <form @submit.prevent="changePassword">
                 <div class="mb-3">
                   <label for="currentPassword" class="form-label"
@@ -183,6 +202,7 @@
                     id="currentPassword"
                     v-model="passwordForm.currentPassword"
                     required
+                    autocomplete="current-password"
                   />
                 </div>
 
@@ -197,9 +217,11 @@
                     v-model="passwordForm.newPassword"
                     required
                     minlength="8"
+                    autocomplete="new-password"
                   />
                   <div class="form-text">
-                    Password must be at least 8 characters long.
+                    Password must be at least 8 characters long and contain a
+                    mix of letters, numbers, and special characters.
                   </div>
                 </div>
 
@@ -213,14 +235,34 @@
                     id="confirmPassword"
                     v-model="passwordForm.confirmPassword"
                     required
+                    autocomplete="new-password"
+                    :class="{
+                      'is-invalid':
+                        passwordForm.newPassword &&
+                        passwordForm.confirmPassword &&
+                        passwordForm.newPassword !==
+                          passwordForm.confirmPassword,
+                    }"
                   />
+                  <div
+                    v-if="
+                      passwordForm.newPassword &&
+                      passwordForm.confirmPassword &&
+                      passwordForm.newPassword !== passwordForm.confirmPassword
+                    "
+                    class="invalid-feedback"
+                  >
+                    Passwords do not match
+                  </div>
                 </div>
 
                 <div v-if="passwordError" class="alert alert-danger mb-3">
+                  <i class="bi bi-exclamation-triangle me-2"></i>
                   {{ passwordError }}
                 </div>
 
                 <div v-if="passwordChanged" class="alert alert-success mb-3">
+                  <i class="bi bi-check-circle me-2"></i>
                   Password changed successfully!
                 </div>
 
@@ -228,17 +270,50 @@
                   <button
                     type="submit"
                     class="btn btn-primary"
-                    :disabled="savingPassword"
+                    :disabled="savingPassword || !isPasswordFormValid"
                   >
                     <span
                       v-if="savingPassword"
                       class="spinner-border spinner-border-sm me-2"
                       role="status"
                     ></span>
+                    <i class="bi bi-key me-2" v-else></i>
                     Change Password
                   </button>
                 </div>
               </form>
+
+              <hr class="my-4" />
+
+              <h5>Account Security</h5>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card">
+                    <div class="card-body">
+                      <h6 class="card-title">
+                        <i class="bi bi-clock-history me-2"></i>
+                        Last Login
+                      </h6>
+                      <p class="card-text text-muted">
+                        {{ formatLastLogin() }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card">
+                    <div class="card-body">
+                      <h6 class="card-title">
+                        <i class="bi bi-shield-check me-2"></i>
+                        Account Status
+                      </h6>
+                      <p class="card-text">
+                        <span class="badge bg-success">Active & Secure</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Notification Preferences Tab -->
@@ -322,6 +397,7 @@
 <script>
 import { ref, reactive, onMounted, computed } from "vue";
 import { useStore } from "vuex";
+import AuthService from "@/services/auth.service";
 
 export default {
   name: "Profile",
@@ -333,12 +409,12 @@ export default {
     // Starea utilizatorului curent
     const currentUser = computed(() => store.getters["auth/currentUser"]);
     const userType = computed(() => {
-      // În implementarea reală, ai detecta tipul utilizatorului din datele stocate
       return currentUser.value?.role || "patient";
     });
-    const is2FAEnabled = computed(() => {
-      return currentUser.value?.two_fa_enabled || false;
-    });
+
+    // Starea 2FA
+    const is2FAEnabled = ref(false);
+    const loading2FAStatus = ref(true);
 
     // Formulare pentru diferite secțiuni
     const personalInfo = reactive({
@@ -363,7 +439,7 @@ export default {
       statusUpdates: true,
     });
 
-    // Stări pentru salvarea formularelor
+    // Stari pentru salvarea formularelor
     const savingPersonalInfo = ref(false);
     const personalInfoSaved = ref(false);
     const savingPassword = ref(false);
@@ -372,27 +448,52 @@ export default {
     const savingNotificationPrefs = ref(false);
     const notificationPrefsSaved = ref(false);
 
-    // Încarcă datele utilizatorului
+    // Computed pentru validarea formularului de parola
+    const isPasswordFormValid = computed(() => {
+      return (
+        passwordForm.currentPassword &&
+        passwordForm.newPassword &&
+        passwordForm.confirmPassword &&
+        passwordForm.newPassword === passwordForm.confirmPassword &&
+        passwordForm.newPassword.length >= 8
+      );
+    });
+
+    // Incarca datele utilizatorului
     const loadUserData = () => {
       if (currentUser.value) {
         personalInfo.firstName = currentUser.value.first_name || "";
         personalInfo.lastName = currentUser.value.last_name || "";
         personalInfo.email = currentUser.value.email || "";
 
-        // În implementarea reală, ai încărca și celelalte date din profil
+        // In implementarea reala, ai incarca si celelalte date din profil
         personalInfo.phone = ""; // placeholder
         personalInfo.birthDate = ""; // placeholder
         personalInfo.speciality = ""; // pentru medici
         personalInfo.description = ""; // pentru medici
 
-        // Placeholder pentru preferințele de notificare
+        // Placeholder pentru preferintele de notificare
         notificationPrefs.email = true;
         notificationPrefs.reminders = true;
         notificationPrefs.statusUpdates = true;
       }
     };
 
-    // Obține titlul pentru tabul activ
+    // Incarca statusul 2FA
+    const load2FAStatus = async () => {
+      try {
+        const response = await AuthService.get2FAStatus();
+        is2FAEnabled.value = response.data.two_fa_enabled;
+      } catch (error) {
+        console.error("Failed to load 2FA status", error);
+        // Fallback la informatia din localStorage
+        is2FAEnabled.value = currentUser.value?.two_fa_enabled || false;
+      } finally {
+        loading2FAStatus.value = false;
+      }
+    };
+
+    // Obtine titlul pentru tabul activ
     const getActiveTabTitle = () => {
       const titles = {
         personal: "Personal Information",
@@ -403,13 +504,28 @@ export default {
       return titles[activeTab.value] || "Settings";
     };
 
+    // Formateaza data ultimei autentificari
+    const formatLastLogin = () => {
+      // Placeholder - in implementarea reală ai primi aceasta de la server
+      const lastLogin = new Date();
+      lastLogin.setHours(lastLogin.getHours() - 2); // Simuleaza acum 2 ore
+
+      return lastLogin.toLocaleString("ro-RO", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    };
+
     // Salveaza informatiile personale
     const savePersonalInfo = async () => {
       savingPersonalInfo.value = true;
       personalInfoSaved.value = false;
 
       try {
-        // TTODO: request catre server
+        // TODO: request catre server
         await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulam un delay
 
         // TODO: Actualizam utilizatorul in store
@@ -456,7 +572,7 @@ export default {
 
       try {
         // TODO: request catre server
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulam un delay
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulăm un delay
 
         passwordChanged.value = true;
 
@@ -471,13 +587,15 @@ export default {
         }, 3000);
       } catch (error) {
         console.error("Failed to change password", error);
-        passwordError.value = "Failed to change password. Please try again.";
+        passwordError.value =
+          error.response?.data?.error ||
+          "Failed to change password. Please try again.";
       } finally {
         savingPassword.value = false;
       }
     };
 
-    // Salveaza preferințele de notificare
+    // Salveaza preferintele de notificare
     const saveNotificationPrefs = async () => {
       savingNotificationPrefs.value = true;
       notificationPrefsSaved.value = false;
@@ -501,6 +619,7 @@ export default {
 
     onMounted(() => {
       loadUserData();
+      load2FAStatus();
     });
 
     return {
@@ -508,6 +627,7 @@ export default {
       currentUser,
       userType,
       is2FAEnabled,
+      loading2FAStatus,
       personalInfo,
       passwordForm,
       notificationPrefs,
@@ -518,7 +638,9 @@ export default {
       passwordError,
       savingNotificationPrefs,
       notificationPrefsSaved,
+      isPasswordFormValid,
       getActiveTabTitle,
+      formatLastLogin,
       savePersonalInfo,
       changePassword,
       saveNotificationPrefs,
