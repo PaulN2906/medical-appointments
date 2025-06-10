@@ -20,6 +20,10 @@ export default {
     return api.post("doctors/schedules/", scheduleData);
   },
 
+  createBulkSchedules(schedules) {
+    return api.post("doctors/schedules/bulk_create/", schedules);
+  },
+
   updateSchedule(id, scheduleData) {
     return api.put(`doctors/schedules/${id}/`, scheduleData);
   },

@@ -594,12 +594,9 @@ export default {
           }
         }
 
-        // Salvam toate sloturile
+        // Salvam toate sloturile intr-un singur request
         if (slots.length > 0) {
-          // TODO: adaugare endpoint pentru creare in bulk
-          for (const slot of slots) {
-            await DoctorService.createSchedule(slot);
-          }
+          await DoctorService.createBulkSchedules(slots);
         }
 
         // Reincarcam calendarul
