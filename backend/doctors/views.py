@@ -6,6 +6,9 @@ from .serializers import DoctorSerializer, ScheduleSerializer
 from django.db import transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DoctorViewSet(viewsets.ModelViewSet):
     queryset = Doctor.objects.all()
@@ -16,7 +19,7 @@ class DoctorViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
-        print("User autenticat:", request.user)
+        logger.debug("User autenticat: %s", request.user)
         return super().list(request, *args, **kwargs)
 
 class ScheduleViewSet(viewsets.ModelViewSet):
