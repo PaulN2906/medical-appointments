@@ -9,7 +9,7 @@ import AppointmentDetails from "../views/AppointmentDetails.vue";
 import Profile from "../views/Profile.vue";
 import AppointmentConfirmation from "../views/AppointmentConfirmation.vue";
 import TwoFactorAuth from "../views/TwoFactorAuth.vue";
-import AuthService from "@/services/auth.service";
+import store from "@/store";
 
 const routes = [
   {
@@ -33,7 +33,7 @@ const routes = [
     path: "/dashboard",
     name: "Dashboard",
     beforeEnter: (to, from, next) => {
-      const user = AuthService.getUser();
+      const user = store.getters["auth/currentUser"];
       if (user && user.role === "doctor") {
         next({ name: "DoctorDashboard" });
       } else if (user && user.role === "patient") {
@@ -107,7 +107,7 @@ const router = createRouter({
 
 // Navigatie guard pentru a verifica autentificarea si rolurile
 router.beforeEach((to, from, next) => {
-  const isAuthenticated = AuthService.isLoggedIn();
+  const isAuthenticated = store.getters["auth/isAuthenticated"];
 
   // Verifica daca ruta necesita autentificare
   if (to.matched.some((record) => record.meta.requiresAuth)) {
@@ -115,7 +115,7 @@ router.beforeEach((to, from, next) => {
       next({ name: "Login" });
     } else {
       // Verifica rolul utilizatorului daca este specificat in meta
-      const user = AuthService.getUser();
+      const user = store.getters["auth/currentUser"];
       if (to.meta.role && user.role !== to.meta.role) {
         next({ name: "Dashboard" }); // Redirectioneaza la dashboard-ul potrivit
       } else {

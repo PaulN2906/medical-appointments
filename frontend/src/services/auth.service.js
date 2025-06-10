@@ -38,21 +38,6 @@ export default {
   },
 
   logout() {
-    return api.post("auth/users/logout/").finally(() => {
-      localStorage.removeItem("user");
-    });
-  },
-
-  saveUserData(userData) {
-    localStorage.setItem("user", JSON.stringify(userData));
-  },
-
-  getUser() {
-    const user = localStorage.getItem("user");
-    return user ? JSON.parse(user) : null;
-  },
-
-  isLoggedIn() {
-    return !!this.getUser();
+    return api.post("auth/users/logout/");
   },
 };

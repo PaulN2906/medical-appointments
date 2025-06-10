@@ -257,12 +257,14 @@
 
 <script>
 import { ref, onMounted } from "vue";
+import { useStore } from "vuex";
 import AuthService from "@/services/auth.service";
 
 export default {
   name: "TwoFactorAuth",
 
   setup() {
+    const store = useStore();
     const loading = ref(true);
     const is2FAEnabled = ref(false);
     const showSetup = ref(false);
@@ -329,11 +331,9 @@ export default {
         is2FAEnabled.value = true;
         showSetup.value = false;
 
-        // Actualizeaza profilul utilizatorului în localStorage
-        const user = AuthService.getUser();
+        const user = store.getters["auth/currentUser"];
         if (user) {
-          user.two_fa_enabled = true;
-          localStorage.setItem("user", JSON.stringify(user));
+          store.commit("auth/setUser", { ...user, two_fa_enabled: true });
         }
 
         successMessage.value =
@@ -386,11 +386,9 @@ export default {
         // Actualizeaza starea locala
         is2FAEnabled.value = false;
 
-        // Actualizeaza profilul utilizatorului in localStorage
-        const user = AuthService.getUser();
+        const user = store.getters["auth/currentUser"];
         if (user) {
-          user.two_fa_enabled = false;
-          localStorage.setItem("user", JSON.stringify(user));
+          store.commit("auth/setUser", { ...user, two_fa_enabled: false });
         }
 
         successMessage.value = "Two-factor authentication has been disabled.";
