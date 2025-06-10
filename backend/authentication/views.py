@@ -15,6 +15,7 @@ import io
 import base64
 from django.db import transaction
 from django.contrib.auth.hashers import make_password
+from django.conf import settings
 import secrets
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -64,7 +65,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 }, status=status.HTTP_200_OK)
             
             token, _ = Token.objects.get_or_create(user=user)
-            
+
             # Get additional IDs based on role
             doctor_id = None
             patient_id = None
@@ -74,8 +75,7 @@ class UserViewSet(viewsets.ModelViewSet):
             elif profile.role == 'patient' and hasattr(user, 'patient'):
                 patient_id = user.patient.id
             
-            return Response({
-                'token': token.key,
+            response = Response({
                 'user_id': user.id,
                 'email': user.email,
                 'requires_2fa': False,
@@ -86,8 +86,24 @@ class UserViewSet(viewsets.ModelViewSet):
                 'patient_id': patient_id,
                 'two_fa_enabled': profile.two_fa_enabled
             }, status=status.HTTP_200_OK)
+            secure = not getattr(settings, 'DEBUG', False)
+            response.set_cookie(
+                'auth_token',
+                token.key,
+                httponly=True,
+                secure=secure,
+                samesite='Lax'
+            )
+            return response
         else:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def logout(self, request):
+        Token.objects.filter(user=request.user).delete()
+        response = Response({'message': 'Logged out'}, status=status.HTTP_200_OK)
+        response.delete_cookie('auth_token')
+        return response
     
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def enable_2fa(self, request):
@@ -273,8 +289,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 elif profile.role == 'patient' and hasattr(user, 'patient'):
                     patient_id = user.patient.id
                 
-                return Response({
-                    'token': token.key,
+                response = Response({
                     'user_id': user.id,
                     'email': user.email,
                     'role': profile.role,
@@ -284,6 +299,15 @@ class UserViewSet(viewsets.ModelViewSet):
                     'patient_id': patient_id,
                     'two_fa_enabled': profile.two_fa_enabled
                 }, status=status.HTTP_200_OK)
+                secure = not getattr(settings, 'DEBUG', False)
+                response.set_cookie(
+                    'auth_token',
+                    token.key,
+                    httponly=True,
+                    secure=secure,
+                    samesite='Lax'
+                )
+                return response
             else:
                 # FAILED: Incrementeaza failed attempts
                 failed_attempts = cache.get(failed_attempts_key, 0) + 1

@@ -5,7 +5,7 @@ export default {
 
   state: {
     user: AuthService.getUser(),
-    token: localStorage.getItem("token") || null,
+    token: null,
     requires2FA: false,
     tempUserId: null,
   },
@@ -35,13 +35,12 @@ export default {
         const response = await AuthService.login(credentials);
 
         if (response.data.requires_2fa) {
-          commit("setRequires2FA", {
-            requires2FA: true,
-            userId: response.data.user_id,
-          });
-          return { requires2FA: true };
+            commit("setRequires2FA", {
+              requires2FA: true,
+              userId: response.data.user_id,
+            });
+            return { requires2FA: true };
         } else {
-          const token = response.data.token;
           const userData = {
             id: response.data.user_id,
             email: response.data.email,
@@ -52,9 +51,8 @@ export default {
             patient_id: response.data.patient_id,
           };
 
-          AuthService.saveUserData(userData, token);
+          AuthService.saveUserData(userData);
           commit("setUser", userData);
-          commit("setToken", token);
           return { success: true };
         }
       } catch (error) {
@@ -65,7 +63,6 @@ export default {
     async verify2FA({ commit, state }, code) {
       try {
         const response = await AuthService.verify2FA(state.tempUserId, code);
-        const token = response.data.token;
         const userData = {
           id: response.data.user_id,
           email: response.data.email,
@@ -76,9 +73,8 @@ export default {
           patient_id: response.data.patient_id,
         };
 
-        AuthService.saveUserData(userData, token);
+        AuthService.saveUserData(userData);
         commit("setUser", userData);
-        commit("setToken", token);
         commit("setRequires2FA", { requires2FA: false, userId: null });
         return { success: true };
       } catch (error) {
@@ -97,14 +93,17 @@ export default {
       }
     },
 
-    logout({ commit }) {
-      AuthService.logout();
-      commit("clearAuth");
+    async logout({ commit }) {
+      try {
+        await AuthService.logout();
+      } finally {
+        commit("clearAuth");
+      }
     },
   },
 
   getters: {
-    isAuthenticated: (state) => !!state.token,
+    isAuthenticated: (state) => !!state.user,
     currentUser: (state) => state.user,
     requires2FA: (state) => state.requires2FA,
   },

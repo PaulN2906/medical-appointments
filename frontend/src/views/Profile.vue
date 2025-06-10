@@ -767,7 +767,7 @@ export default {
         store.commit("auth/setUser", updatedUser);
 
         // Update localStorage
-        AuthService.saveUserData(updatedUser, localStorage.getItem("token"));
+        AuthService.saveUserData(updatedUser);
 
         personalInfoSaved.value = true;
 
@@ -811,7 +811,6 @@ export default {
 
         // Update token if returned (old tokens are invalidated)
         if (response.data.token) {
-          localStorage.setItem("token", response.data.token);
           store.commit("auth/setToken", response.data.token);
         }
 

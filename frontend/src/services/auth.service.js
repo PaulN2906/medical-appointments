@@ -38,12 +38,12 @@ export default {
   },
 
   logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    return api.post("auth/users/logout/").finally(() => {
+      localStorage.removeItem("user");
+    });
   },
 
-  saveUserData(userData, token) {
-    localStorage.setItem("token", token);
+  saveUserData(userData) {
     localStorage.setItem("user", JSON.stringify(userData));
   },
 
@@ -53,6 +53,6 @@ export default {
   },
 
   isLoggedIn() {
-    return !!localStorage.getItem("token");
+    return !!this.getUser();
   },
 };
