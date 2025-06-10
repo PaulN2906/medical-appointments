@@ -1,7 +1,9 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from django.db import transaction
+from django.db import transaction, IntegrityError
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404
 from .models import Appointment
 from .serializers import AppointmentSerializer
 from doctors.models import Schedule
@@ -15,24 +17,39 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         
-        # Verifica daca utilizatorul este medic sau pacient
-        try:
-            doctor = user.doctor
-            return Appointment.objects.filter(doctor=doctor)
-        except:
-            pass
-        
-        try:
-            patient = user.patient
-            return Appointment.objects.filter(patient=patient)
-        except:
-            pass
-        
-        # Daca e admin, returneaza toate programarile
-        if user.is_staff:
+        # Verifica explicit rolul utilizatorului
+        if hasattr(user, 'doctor') and user.doctor:
+            # Doctorul vede doar appointment-urile sale
+            return Appointment.objects.filter(doctor=user.doctor)
+        elif hasattr(user, 'patient') and user.patient:
+            # Pacientul vede doar appointment-urile sale
+            return Appointment.objects.filter(patient=user.patient)
+        elif user.is_staff or user.is_superuser:
+            # Admin-ul vede toate appointment-urile
             return Appointment.objects.all()
+        else:
+            # Utilizatori fara rol valid nu vad nimic
+            return Appointment.objects.none()
         
-        return Appointment.objects.none()
+    def get_object(self):
+        """
+        Returneaza appointment-ul doar daca utilizatorul are dreptul sa-l acceseze
+        """
+        obj = get_object_or_404(Appointment, pk=self.kwargs['pk'])
+        
+        user = self.request.user
+        
+        # Verifica dacă utilizatorul are dreptul sa acceseze acest appointment
+        if hasattr(user, 'doctor') and user.doctor:
+            if obj.doctor != user.doctor:
+                raise PermissionDenied("You can only access your own appointments as a doctor.")
+        elif hasattr(user, 'patient') and user.patient:
+            if obj.patient != user.patient:
+                raise PermissionDenied("You can only access your own appointments as a patient.")
+        elif not (user.is_staff or user.is_superuser):
+            raise PermissionDenied("You don't have permission to access this appointment.")
+        
+        return obj
     
     @transaction.atomic
     def create(self, request, *args, **kwargs):
@@ -41,27 +58,41 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         try:
             schedule = Schedule.objects.select_for_update().get(id=schedule_id)
             
-            # Check availability only for new appointments
-            if not schedule.is_available:
-                return Response(
-                    {'error': 'This schedule is no longer available'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            try:
+                # Create appointment
+                response = super().create(request, *args, **kwargs)
+
+                # Marcam ca indisponibil doar daca programarea a fost creata cu succes
+                if response.status_code == status.HTTP_201_CREATED:
+                    schedule.is_available = False
+                    schedule.save()
             
-            # Create appointment
-            response = super().create(request, *args, **kwargs)
+                # Create notification for doctor
+                    appointment = Appointment.objects.get(id=response.data['id'])
+                    Notification.objects.create(
+                        user=appointment.doctor.user,
+                        type='system',
+                        title='New Appointment',
+                        message=f'You have a new appointment with {appointment.patient.user.first_name} {appointment.patient.user.last_name} on {appointment.schedule.date} at {appointment.schedule.start_time}'
+                    )
+                
+                return response
             
-            # Create notification for doctor
-            if response.status_code == status.HTTP_201_CREATED:
-                appointment = Appointment.objects.get(id=response.data['id'])
-                Notification.objects.create(
-                    user=appointment.doctor.user,
-                    type='system',
-                    title='New Appointment',
-                    message=f'You have a new appointment with {appointment.patient.user.first_name} {appointment.patient.user.last_name} on {appointment.schedule.date} at {appointment.schedule.start_time}'
-                )
-            
-            return response
+            except IntegrityError as e:
+                # Constraint de unicitate care previne double-booking
+                # Verificam din nou disponibilitatea pt un mesaj mai clar
+                schedule.refresh_from_db()
+                if not schedule.is_available:
+                    return Response(
+                        {'error': 'This schedule slot is no longer available'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                else:
+                    # Alta problema de integritate
+                    return Response(
+                        {'error': 'Unable to create appointment. Please try again.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
         
         except Schedule.DoesNotExist:
             return Response(
