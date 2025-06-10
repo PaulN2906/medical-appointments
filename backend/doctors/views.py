@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from django.core.exceptions import PermissionDenied
 from .models import Doctor, Schedule
 from .serializers import DoctorSerializer, ScheduleSerializer
 from django.db import transaction
@@ -49,8 +50,17 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     
     @transaction.atomic
     def create(self, request, *args, **kwargs):
-        # Implementam logica de validare si creare cu tranzactii
-        return super().create(request, *args, **kwargs)
+        user = request.user
+        if not hasattr(user, "doctor"):
+            raise PermissionDenied("Only doctors can create schedules.")
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(doctor=user.doctor)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
     @action(detail=False, methods=['post'])
     @transaction.atomic
@@ -63,4 +73,8 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_bulk_create(self, serializer):
-        serializer.save()
+        user = self.request.user
+        if not hasattr(user, "doctor"):
+            raise PermissionDenied("Only doctors can create schedules.")
+
+        serializer.save(doctor=user.doctor)
