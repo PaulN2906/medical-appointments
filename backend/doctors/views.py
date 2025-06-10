@@ -15,6 +15,14 @@ class DoctorViewSet(viewsets.ModelViewSet):
     serializer_class = DoctorSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            return Doctor.objects.all()
+        if hasattr(user, "doctor"):
+            return Doctor.objects.filter(pk=user.doctor.pk)
+        return Doctor.objects.none()
+
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
@@ -26,6 +34,14 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     queryset = Schedule.objects.all()
     serializer_class = ScheduleSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            return Schedule.objects.all()
+        if hasattr(user, "doctor"):
+            return Schedule.objects.filter(doctor=user.doctor)
+        return Schedule.objects.none()
     
     # @method_decorator(cache_page(60*5))  # Cache pentru 5 minute, dezactivat momentan
     def list(self, request, *args, **kwargs):
