@@ -143,12 +143,22 @@ class UserViewSet(viewsets.ModelViewSet):
         if not code:
             return Response({'error': 'Verification code is required'}, status=status.HTTP_400_BAD_REQUEST)
         
+        # Rate limiting pentru setup
+        from django.core.cache import cache
+        setup_attempts_key = f"2fa_setup_attempts_{user.id}"
+        
+        setup_attempts = cache.get(setup_attempts_key, 0)
+        if setup_attempts >= 10:  # Maxim 10 incercari pentru setup
+            return Response({
+                'error': 'Too many setup attempts. Please try again in 10 minutes.'
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        
         try:
             # Gaseste dispozitivul TOTP neconfirmat
             device = TOTPDevice.objects.get(user=user, confirmed=False)
             
             totp = pyotp.TOTP(device.key)
-            if totp.verify(code, valid_window=1):  # Allow 1 step tolerance
+            if totp.verify(code, valid_window=1):  # Setup poate avea toleranta mai mare
                 # Confirma dispozitivul si activeaza 2FA
                 device.confirmed = True
                 device.save()
@@ -157,11 +167,23 @@ class UserViewSet(viewsets.ModelViewSet):
                 profile.two_fa_enabled = True
                 profile.save()
                 
+                # RESET failed attempts
+                cache.delete(setup_attempts_key)
+                
+                # LOG: Successful 2FA setup
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info(f"User {user.username} successfully enabled 2FA from IP {request.META.get('REMOTE_ADDR')}")
+                
                 return Response({
                     'message': '2FA has been enabled successfully'
                 }, status=status.HTTP_200_OK)
             else:
+                # INCREMENT setup attempts
+                cache.set(setup_attempts_key, setup_attempts + 1, timeout=600)  # 10 minute
+                
                 return Response({'error': 'Invalid verification code'}, status=status.HTTP_400_BAD_REQUEST)
+                
         except TOTPDevice.DoesNotExist:
             return Response({'error': 'No pending 2FA setup found'}, status=status.HTTP_404_NOT_FOUND)
     
@@ -192,12 +214,38 @@ class UserViewSet(viewsets.ModelViewSet):
         if not user_id or not code:
             return Response({'error': 'User ID and code are required'}, status=status.HTTP_400_BAD_REQUEST)
         
+        # Rate limiting check
+        from django.core.cache import cache
+        import time
+        
+        # Key pentru tracking failed attempts
+        failed_attempts_key = f"2fa_failed_attempts_{user_id}"
+        lockout_key = f"2fa_lockout_{user_id}"
+        
+        # Verifica daca utilizatorul e locked out
+        if cache.get(lockout_key):
+            return Response({
+                'error': 'Too many failed attempts. Please try again in 15 minutes.'
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        
         try:
             user = User.objects.get(id=user_id)
             device = TOTPDevice.objects.get(user=user, confirmed=True)
             
+            # Window mai strict si logging
             totp = pyotp.TOTP(device.key)
-            if totp.verify(code, valid_window=1):
+            
+            # Verifica codul cu window redus (mai sigur)
+            if totp.verify(code, valid_window=0):  # Doar codul exact, fara toleranta
+                # SUCCES: Reseteaza failed attempts
+                cache.delete(failed_attempts_key)
+                cache.delete(lockout_key)
+                
+                # LOG: Successful 2FA
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info(f"Successful 2FA login for user {user.username} from IP {request.META.get('REMOTE_ADDR')}")
+                
                 token, _ = Token.objects.get_or_create(user=user)
                 profile = UserProfile.objects.get(user=user)
                 
@@ -221,9 +269,35 @@ class UserViewSet(viewsets.ModelViewSet):
                     'two_fa_enabled': profile.two_fa_enabled
                 }, status=status.HTTP_200_OK)
             else:
-                return Response({'error': 'Invalid 2FA code'}, status=status.HTTP_401_UNAUTHORIZED)
+                # FAILED: Incrementeaza failed attempts
+                failed_attempts = cache.get(failed_attempts_key, 0) + 1
+                cache.set(failed_attempts_key, failed_attempts, timeout=900)  # 15 minute
+                
+                # LOG: Failed 2FA attempt
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed 2FA attempt #{failed_attempts} for user {user.username} from IP {request.META.get('REMOTE_ADDR')}")
+                
+                # LOCKOUT: Dupa 5 incercari esuate
+                if failed_attempts >= 5:
+                    cache.set(lockout_key, True, timeout=900)  # 15 minute lockout
+                    logger.error(f"User {user.username} locked out due to 5 failed 2FA attempts from IP {request.META.get('REMOTE_ADDR')}")
+                    
+                    return Response({
+                        'error': 'Too many failed attempts. Account locked for 15 minutes.'
+                    }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+                
+                return Response({
+                    'error': f'Invalid 2FA code. {5 - failed_attempts} attempts remaining.'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+                
         except (User.DoesNotExist, TOTPDevice.DoesNotExist):
-            return Response({'error': 'User or device not found'}, status=status.HTTP_404_NOT_FOUND)
+            # LOG: Attempted access with invalid user/device
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"2FA attempt with invalid user_id {user_id} from IP {request.META.get('REMOTE_ADDR')}")
+            
+            return Response({'error': 'Invalid request'}, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def get_2fa_status(self, request):
