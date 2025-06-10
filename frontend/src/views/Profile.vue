@@ -684,8 +684,6 @@ export default {
           personalInfo.birthDate = profileData.value.date_of_birth || "";
         }
 
-        // TODO: Load notification preferences when backend is ready
-        // For now, keep defaults
       } catch (error) {
         console.error("Failed to load user profile:", error);
         personalInfoError.value =
