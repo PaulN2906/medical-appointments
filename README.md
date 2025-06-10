@@ -4,11 +4,57 @@ This repository contains the backend and frontend for a medical appointments app
 
 ## Environment Variables
 
-The backend uses the following environment variables:
+Create a `.env` file inside the `backend` directory with the variables below. You can also export them in your shell.
 
-- `SECRET_KEY` – the Django secret key used for cryptographic signing. **Required**.
+Required:
 
-Create a `.env` file in the `backend` directory and define these variables before running the app.
+- `SECRET_KEY` – Django secret key used for cryptographic signing.
+
+Optional (for email and debugging):
+
+- `DEBUG` – set to `True` for development.
+- `EMAIL_HOST`
+- `EMAIL_PORT`
+- `EMAIL_USE_TLS`
+- `EMAIL_HOST_USER`
+- `EMAIL_HOST_PASSWORD`
+- `DEFAULT_FROM_EMAIL`
+
+## Running the Backend
+
+1. Install Python requirements:
+   ```bash
+   pip install -r backend/requirements.txt
+   ```
+2. Apply database migrations:
+   ```bash
+   python manage.py migrate
+   ```
+3. (Optional) create a superuser:
+   ```bash
+   python manage.py createsuperuser
+   ```
+4. Start the development server:
+   ```bash
+   python manage.py runserver
+   ```
+
+Run these commands from inside the `backend` directory.
+
+## Running the Frontend
+
+From the `frontend` directory run:
+
+```bash
+npm install
+npm run serve
+```
+
+This starts the Vue development server on the default port.
+
+## Optional Setup
+
+You can enable two-factor authentication (2FA) from your user profile after signing in. Follow the on-screen instructions to scan the QR code and confirm the verification code.
 
 ## Running Tests
 
