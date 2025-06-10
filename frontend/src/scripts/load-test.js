@@ -2,7 +2,7 @@ const axios = require("axios");
 const fs = require("fs");
 
 // Configurare
-const BASE_URL = "http://127.0.0.1:8000/api";
+const BASE_URL = process.env.VUE_APP_API_URL || "http://127.0.0.1:8000/api";
 const NUM_USERS = 100;
 const CONCURRENT_REQUESTS = 20;
 const APPOINTMENT_ENDPOINT = "/appointments/appointments/";

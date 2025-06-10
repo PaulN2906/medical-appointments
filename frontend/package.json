@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "serve": "VUE_APP_API_URL=http://127.0.0.1:8000/api/ vue-cli-service serve",
+    "build": "VUE_APP_API_URL=/api/ vue-cli-service build",
+    "lint": "vue-cli-service lint",
+    "load-test": "VUE_APP_API_URL=http://127.0.0.1:8000/api/ node src/scripts/load-test.js"
   },
   "dependencies": {
     "@fullcalendar/daygrid": "^6.1.17",

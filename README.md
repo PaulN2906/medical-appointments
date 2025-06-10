@@ -20,6 +20,10 @@ Optional (for email and debugging):
 - `EMAIL_HOST_PASSWORD`
 - `DEFAULT_FROM_EMAIL`
 
+Frontend:
+
+- `VUE_APP_API_URL` – Base URL used by the Vue app to reach the backend. Defaults to `/api/`.
+
 ## Running the Backend
 
 1. Install Python requirements:
@@ -50,7 +54,9 @@ npm install
 npm run serve
 ```
 
-This starts the Vue development server on the default port.
+`npm run serve` launches the Vue development server with `VUE_APP_API_URL` set to
+`http://127.0.0.1:8000/api/`. When building for production the `npm run build`
+script uses the default `/api/` path.
 
 ## Optional Setup
 
