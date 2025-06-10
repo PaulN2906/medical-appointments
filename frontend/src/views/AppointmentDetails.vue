@@ -137,8 +137,12 @@ export default {
 
     // Determina daca utilizatorul curent este medic
     const isDoctor = computed(() => {
-      // TODO: verificare rol utilizator
-      return currentUser.value && currentUser.value.role === "doctor";
+      return (
+        currentUser.value &&
+        currentUser.value.role === "doctor" &&
+        appointment.value &&
+        currentUser.value.doctor_id === appointment.value.doctor_details.id
+      );
     });
 
     // Incarca detaliile programarii
