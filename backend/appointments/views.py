@@ -56,7 +56,11 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         schedule_id = request.data.get('schedule')
         
         try:
-            schedule = Schedule.objects.select_for_update().get(id=schedule_id)
+            # SQLite nu merge bine cu instructiunea select_for_update()
+            # Am adaugat alte conditii care sa asigure unicitatea
+            #schedule = Schedule.objects.select_for_update().get(id=schedule_id)
+
+            schedule = Schedule.objects.get(id=schedule_id)
             
             try:
                 # Create appointment
@@ -64,6 +68,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
                 # Marcam ca indisponibil doar daca programarea a fost creata cu succes
                 if response.status_code == status.HTTP_201_CREATED:
+                    schedule.refresh_from_db()
                     schedule.is_available = False
                     schedule.save()
             
