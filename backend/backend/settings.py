@@ -122,6 +122,11 @@ DATABASES = {
     }
 }
 
+# Use a separate database when running tests
+import sys
+if 'test' in sys.argv:
+    DATABASES['default']['NAME'] = BASE_DIR / 'test_db.sqlite3'
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
