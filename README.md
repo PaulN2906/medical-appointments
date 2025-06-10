@@ -68,3 +68,7 @@ You can enable two-factor authentication (2FA) from your user profile after sign
 2. Ensure `SECRET_KEY` is set in `backend/.env` or exported as an environment variable.
 3. Execute the tests from the `backend` directory with `python manage.py test`.
 4. Tests run using a separate SQLite database located at `backend/test_db.sqlite3` which can be safely removed after the tests finish.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
