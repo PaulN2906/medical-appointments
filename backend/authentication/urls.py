@@ -7,4 +7,9 @@ router.register(r'users', views.UserViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path(
+        'users/regenerate_backup_codes/',
+        views.UserViewSet.as_view({'post': 'regenerate_backup_codes'}),
+        name='user-regenerate-backup-codes',
+    ),
 ]

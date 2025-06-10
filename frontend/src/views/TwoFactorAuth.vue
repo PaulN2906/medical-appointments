@@ -238,6 +238,15 @@
                 <i class="bi bi-check-circle"></i>
                 {{ successMessage }}
               </div>
+
+              <div v-if="backupCodes.length" class="alert alert-secondary mt-3">
+                <h5 class="mb-2">New Backup Codes</h5>
+                <ul class="list-unstyled mb-0">
+                  <li v-for="code in backupCodes" :key="code">
+                    <code>{{ code }}</code>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -267,6 +276,7 @@ export default {
     const verificationError = ref("");
     const error = ref("");
     const successMessage = ref("");
+    const backupCodes = ref([]);
 
     // Incarca statusul 2FA al utilizatorului
     const loadStatus = async () => {
@@ -399,7 +409,7 @@ export default {
       }
     };
 
-    // Regenereaza codurile de backup (placeholder pentru implementare viitoare)
+    // Regenereaza codurile de backup
     const regenerate2FA = async () => {
       if (
         !confirm(
@@ -413,9 +423,8 @@ export default {
       error.value = "";
 
       try {
-        // TODO: Implementare generare backup codes
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
+        const response = await AuthService.regenerateBackupCodes();
+        backupCodes.value = response.data.backup_codes || [];
         successMessage.value = "Backup codes have been regenerated.";
 
         setTimeout(() => {
@@ -447,6 +456,7 @@ export default {
       verificationError,
       error,
       successMessage,
+      backupCodes,
       enable2FA,
       disable2FA,
       regenerate2FA,

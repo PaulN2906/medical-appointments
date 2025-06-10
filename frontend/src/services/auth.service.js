@@ -33,6 +33,10 @@ export default {
     return api.get("auth/users/get_2fa_status/");
   },
 
+  regenerateBackupCodes() {
+    return api.post("auth/users/regenerate_backup_codes/");
+  },
+
   logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
