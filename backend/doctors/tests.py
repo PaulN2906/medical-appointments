@@ -67,3 +67,47 @@ class ScheduleViewsetQuerysetTest(TestCase):
         response = self.client.get(url)
         self.assertEqual(len(response.data), 2)
 
+
+class ScheduleViewsetCreateTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+        user1 = User.objects.create_user(username='d1c', password='pass')
+        user2 = User.objects.create_user(username='d2c', password='pass')
+
+        self.doctor1 = Doctor.objects.create(user=user1, speciality='gen')
+        self.doctor2 = Doctor.objects.create(user=user2, speciality='gen')
+
+        self.url = reverse('schedule-list')
+
+    def test_doctor_cannot_create_schedule_for_another(self):
+        self.client.force_authenticate(user=self.doctor1.user)
+        data = {
+            'doctor': self.doctor2.id,
+            'date': date.today() + timedelta(days=1),
+            'start_time': time(9, 0),
+            'end_time': time(10, 0),
+            'is_available': True,
+        }
+
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['doctor'], self.doctor1.id)
+
+        schedule = Schedule.objects.get(id=response.data['id'])
+        self.assertEqual(schedule.doctor, self.doctor1)
+
+    def test_non_doctor_cannot_create_schedule(self):
+        user = User.objects.create_user(username='plain', password='pass')
+        self.client.force_authenticate(user=user)
+        data = {
+            'doctor': self.doctor1.id,
+            'date': date.today() + timedelta(days=1),
+            'start_time': time(9, 0),
+            'end_time': time(10, 0),
+            'is_available': True,
+        }
+
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, 403)
+
