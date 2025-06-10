@@ -74,11 +74,17 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             
                 # Create notification for doctor
                     appointment = Appointment.objects.get(id=response.data['id'])
+
+                    # asiguram numele utilizatorului
+                    from django.utils.html import escape
+                    safe_first_name = escape(appointment.patient.user.first_name)
+                    safe_last_name = escape(appointment.patient.user.last_name)
+
                     Notification.objects.create(
                         user=appointment.doctor.user,
                         type='system',
                         title='New Appointment',
-                        message=f'You have a new appointment with {appointment.patient.user.first_name} {appointment.patient.user.last_name} on {appointment.schedule.date} at {appointment.schedule.start_time}'
+                        message=f'You have a new appointment with {safe_first_name} {safe_last_name} on {appointment.schedule.date} at {appointment.schedule.start_time}'
                     )
                 
                 return response
@@ -119,12 +125,15 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         appointment.status = 'confirmed'
         appointment.save()
         
+        from django.utils.html import escape
+        safe_doctor_name = escape(appointment.doctor.user.last_name)
+
         # Cream notificare pentru pacient
         Notification.objects.create(
             user=appointment.patient.user,
             type='email',
             title='Appointment Confirmed',
-            message=f'Your appointment with Dr. {appointment.doctor.user.last_name} on {appointment.schedule.date} at {appointment.schedule.start_time} has been confirmed.'
+            message=f'Your appointment with Dr. {safe_doctor_name} on {appointment.schedule.date} at {appointment.schedule.start_time} has been confirmed.'
         )
         
         return Response({'status': 'appointment confirmed'})
@@ -155,23 +164,28 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         if not other_active.exists():
             schedule.is_available = True
             schedule.save()
+
+        from django.utils.html import escape
         
         # Notificam celalalt participant
         if request.user == appointment.doctor.user:
             # Medicul anuleaza
+            safe_doctor_name = escape(appointment.doctor.user.last_name)
             Notification.objects.create(
                 user=appointment.patient.user,
                 type='email',
                 title='Appointment Cancelled',
-                message=f'Your appointment with Dr. {appointment.doctor.user.last_name} on {appointment.schedule.date} has been cancelled.'
+                message=f'Your appointment with Dr. {safe_doctor_name} on {appointment.schedule.date} has been cancelled.'
             )
         else:
             # Pacientul anuleaza
+            safe_first_name = escape(appointment.patient.user.first_name)
+            safe_last_name = escape(appointment.patient.user.last_name)
             Notification.objects.create(
                 user=appointment.doctor.user,
                 type='system',
                 title='Appointment Cancelled',
-                message=f'The appointment with {appointment.patient.user.first_name} {appointment.patient.user.last_name} on {appointment.schedule.date} has been cancelled.'
+                message=f'The appointment with {safe_first_name} {safe_last_name} on {appointment.schedule.date} has been cancelled.'
             )
         
         return Response({'status': 'appointment cancelled'})

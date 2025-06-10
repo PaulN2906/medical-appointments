@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 from .models import UserProfile, NotificationPreferences
 
 class UserSerializer(serializers.ModelSerializer):
@@ -9,11 +11,26 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 'password']
         read_only_fields = ['id']
+    
+    def validate_email(self, value):
+        """
+        Valideaza formatul email-ului
+        """
+        try:
+            validate_email(value)
+        except ValidationError:
+            raise serializers.ValidationError("Enter a valid email address.")
+        
+        # Verifica daca email-ul nu este deja folosit
+        if User.objects.filter(email=value).exclude(pk=self.instance.pk if self.instance else None).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        
+        return value.lower()  # Normalizeaza la lowercase
 
     def create(self, validated_data):
-        password = validated_data.pop('password')  # scoatem parola
+        password = validated_data.pop('password')
         user = User(**validated_data)
-        user.set_password(password)  # o criptam
+        user.set_password(password)
         user.save()
         return user
 
