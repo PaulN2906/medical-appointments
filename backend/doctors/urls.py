@@ -8,4 +8,9 @@ router.register(r'schedules', views.ScheduleViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path(
+        'schedules/bulk_create/',
+        views.ScheduleViewSet.as_view({'post': 'bulk_create'}),
+        name='schedule-bulk-create',
+    ),
 ]

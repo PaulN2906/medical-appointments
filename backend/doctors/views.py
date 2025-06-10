@@ -1,4 +1,6 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
+from rest_framework.response import Response
+from rest_framework.decorators import action
 from .models import Doctor, Schedule
 from .serializers import DoctorSerializer, ScheduleSerializer
 from django.db import transaction
@@ -30,3 +32,16 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         # Implementam logica de validare si creare cu tranzactii
         return super().create(request, *args, **kwargs)
+
+    @action(detail=False, methods=['post'])
+    @transaction.atomic
+    def bulk_create(self, request, *args, **kwargs):
+        """Create multiple schedules in a single transaction"""
+        serializer = self.get_serializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_bulk_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def perform_bulk_create(self, serializer):
+        serializer.save()
