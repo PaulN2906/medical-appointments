@@ -11,6 +11,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     two_fa_enabled = models.BooleanField(default=False)
+    backup_codes = models.JSONField(default=list, blank=True)
     role = models.CharField(max_length=10, choices=USER_ROLES, default='patient')
     
     def __str__(self):

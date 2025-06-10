@@ -14,6 +14,8 @@ import qrcode
 import io
 import base64
 from django.db import transaction
+from django.contrib.auth.hashers import make_password
+import secrets
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -205,6 +207,20 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response({
             'message': '2FA has been disabled'
         }, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def regenerate_backup_codes(self, request):
+        user = request.user
+        profile = UserProfile.objects.get(user=user)
+
+        # Generate 10 random backup codes
+        codes = [secrets.token_hex(4) for _ in range(10)]
+        hashed_codes = [make_password(code) for code in codes]
+
+        profile.backup_codes = hashed_codes
+        profile.save()
+
+        return Response({'backup_codes': codes}, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
     def verify_2fa(self, request):
