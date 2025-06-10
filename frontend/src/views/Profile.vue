@@ -699,7 +699,7 @@ export default {
         is2FAEnabled.value = response.data.two_fa_enabled;
       } catch (error) {
         console.error("Failed to load 2FA status", error);
-        // Fallback to localStorage data
+        // Fallback to stored user data
         is2FAEnabled.value = currentUser.value?.two_fa_enabled || false;
       } finally {
         loading2FAStatus.value = false;
@@ -765,8 +765,7 @@ export default {
         };
         store.commit("auth/setUser", updatedUser);
 
-        // Update localStorage
-        AuthService.saveUserData(updatedUser);
+
 
         personalInfoSaved.value = true;
 

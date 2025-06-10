@@ -4,7 +4,7 @@ export default {
   namespaced: true,
 
   state: {
-    user: AuthService.getUser(),
+    user: null,
     token: null,
     requires2FA: false,
     tempUserId: null,
@@ -51,7 +51,6 @@ export default {
             patient_id: response.data.patient_id,
           };
 
-          AuthService.saveUserData(userData);
           commit("setUser", userData);
           return { success: true };
         }
@@ -73,7 +72,6 @@ export default {
           patient_id: response.data.patient_id,
         };
 
-        AuthService.saveUserData(userData);
         commit("setUser", userData);
         commit("setRequires2FA", { requires2FA: false, userId: null });
         return { success: true };
