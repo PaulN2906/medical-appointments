@@ -15,10 +15,10 @@ from appointments.models import Appointment
 from datetime import datetime, timedelta
 
 def setup_test_data():
-    """Creează datele necesare pentru test"""
+    """Creeaza datele necesare pentru test"""
     print("🔧 Setting up test data...")
     
-    # 1. Creează un doctor de test
+    # 1. Creeaza un doctor de test
     doctor_user, created = User.objects.get_or_create(
         username='test_doctor_race',
         defaults={
@@ -30,7 +30,7 @@ def setup_test_data():
     doctor_user.set_password('TestPassword123!')
     doctor_user.save()
     
-    # Creează profile de doctor
+    # Creeaza profile de doctor
     profile, _ = UserProfile.objects.get_or_create(
         user=doctor_user,
         defaults={'role': 'doctor'}
@@ -41,7 +41,7 @@ def setup_test_data():
         defaults={'speciality': 'General Medicine'}
     )
     
-    # 2. Creează un schedule slot pentru test
+    # 2. Creeaza un schedule slot pentru test
     tomorrow = datetime.now().date() + timedelta(days=1)
     schedule, created = Schedule.objects.get_or_create(
         doctor=doctor,
@@ -51,12 +51,12 @@ def setup_test_data():
         defaults={'is_available': True}
     )
     
-    # Asigură-te că e disponibil și șterge appointment-urile vechi
+    # Asigura-te ca e disponibil si sterge appointment-urile vechi
     Appointment.objects.filter(schedule=schedule).delete()
     schedule.is_available = True
     schedule.save()
     
-    # 3. Creează 20 de utilizatori pacienți
+    # 3. Creeaza 20 de utilizatori pacienti
     CONCURRENT_REQUESTS = 20
     print(f"📝 Creating {CONCURRENT_REQUESTS} patient users...")
     

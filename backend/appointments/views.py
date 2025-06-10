@@ -135,12 +135,21 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Salveaza ID-ul schedule-ului inainte de a schimba status-ul
+        schedule = appointment.schedule
+        
         appointment.status = 'cancelled'
         appointment.save()
         
-        # Eliberam programul
-        appointment.schedule.is_available = True
-        appointment.schedule.save()
+        # Verificam daca mai sunt appointment-uri active pentru acest schedule
+        other_active = Appointment.objects.filter(
+            schedule=schedule,
+            status__in=['pending', 'confirmed']
+        ).exclude(pk=appointment.pk)
+        
+        if not other_active.exists():
+            schedule.is_available = True
+            schedule.save()
         
         # Notificam celalalt participant
         if request.user == appointment.doctor.user:

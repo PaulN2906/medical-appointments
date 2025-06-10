@@ -43,21 +43,22 @@ class Appointment(models.Model):
             if existing.exists():
                 raise ValidationError('This schedule slot is already booked.')
     
-    @transaction.atomic
-    def save(self, *args, **kwargs):
-        # Update schedule availability based on appointment status
-        if self.status in ['pending', 'confirmed']:
-            self.schedule.is_available = False
-            self.schedule.save()
-        elif self.status == 'cancelled':
-            # Check if there are other active appointments for this schedule
-            other_active = Appointment.objects.filter(
-                schedule=self.schedule,
-                status__in=['pending', 'confirmed']
-            ).exclude(pk=self.pk)
-            
-            if not other_active.exists():
-                self.schedule.is_available = True
-                self.schedule.save()
-        
-        super().save(*args, **kwargs)
+    # SQLite Poate cauza conflicte aici
+    #@transaction.atomic
+    #def save(self, *args, **kwargs):
+    #    # Update schedule availability based on appointment status
+    #    if self.status in ['pending', 'confirmed']:
+    #        self.schedule.is_available = False
+    #        self.schedule.save()
+    #    elif self.status == 'cancelled':
+    #        # Check if there are other active appointments for this schedule
+    #        other_active = Appointment.objects.filter(
+    #            schedule=self.schedule,
+    #            status__in=['pending', 'confirmed']
+    #        ).exclude(pk=self.pk)
+    #        
+    #        if not other_active.exists():
+    #           self.schedule.is_available = True
+    #           self.schedule.save()
+    #    
+    #    super().save(*args, **kwargs)
