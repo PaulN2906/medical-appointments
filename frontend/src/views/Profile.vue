@@ -807,10 +807,6 @@ export default {
           new_password: passwordForm.newPassword,
         });
 
-        // Update token if returned (old tokens are invalidated)
-        if (response.data.token) {
-          store.commit("auth/setToken", response.data.token);
-        }
 
         passwordChanged.value = true;
 

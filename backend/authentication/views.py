@@ -470,13 +470,24 @@ class UserViewSet(viewsets.ModelViewSet):
         from rest_framework.authtoken.models import Token
         Token.objects.filter(user=user).delete()
         
-        # Create new token
+        # Create new token and set cookie
         new_token = Token.objects.create(user=user)
-        
-        return Response({
-            'message': 'Password changed successfully',
-            'token': new_token.key  # Return new token since old ones are invalidated
-        }, status=status.HTTP_200_OK)
+
+        response = Response(
+            {'message': 'Password changed successfully'},
+            status=status.HTTP_200_OK,
+        )
+
+        secure = not getattr(settings, 'DEBUG', False)
+        response.set_cookie(
+            'auth_token',
+            new_token.key,
+            httponly=True,
+            secure=secure,
+            samesite='Lax',
+        )
+
+        return response
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def get_notification_preferences(self, request):
