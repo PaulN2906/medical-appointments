@@ -35,11 +35,11 @@ export default {
         const response = await AuthService.login(credentials);
 
         if (response.data.requires_2fa) {
-            commit("setRequires2FA", {
-              requires2FA: true,
-              userId: response.data.user_id,
-            });
-            return { requires2FA: true };
+          commit("setRequires2FA", {
+            requires2FA: true,
+            userId: response.data.user_id,
+          });
+          return { requires2FA: true };
         } else {
           const userData = {
             id: response.data.user_id,

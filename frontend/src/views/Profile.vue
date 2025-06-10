@@ -683,7 +683,6 @@ export default {
         } else if (userType.value === "patient") {
           personalInfo.birthDate = profileData.value.date_of_birth || "";
         }
-
       } catch (error) {
         console.error("Failed to load user profile:", error);
         personalInfoError.value =
