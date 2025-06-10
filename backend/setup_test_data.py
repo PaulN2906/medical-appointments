@@ -13,6 +13,7 @@ from doctors.models import Doctor, Schedule
 from patients.models import Patient
 from appointments.models import Appointment
 from datetime import datetime, timedelta
+from django.utils import timezone
 
 def setup_test_data():
     """Creeaza datele necesare pentru test"""
@@ -42,7 +43,7 @@ def setup_test_data():
     )
     
     # 2. Creeaza un schedule slot pentru test
-    tomorrow = datetime.now().date() + timedelta(days=1)
+    tomorrow = timezone.now().date() + timedelta(days=1)
     schedule, created = Schedule.objects.get_or_create(
         doctor=doctor,
         date=tomorrow,

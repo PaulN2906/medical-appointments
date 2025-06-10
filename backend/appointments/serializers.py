@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from datetime import date, datetime, time
+from django.utils import timezone
 from .models import Appointment
 from doctors.serializers import DoctorSerializer, ScheduleSerializer
 from patients.serializers import PatientSerializer
@@ -24,8 +25,11 @@ class AppointmentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This time slot is no longer available.")
         
         # 2. Verifica daca programarea nu este in trecut
-        appointment_datetime = datetime.combine(value.date, value.start_time)
-        now = datetime.now()
+        appointment_datetime = timezone.make_aware(
+            datetime.combine(value.date, value.start_time),
+            timezone.get_current_timezone()
+        )
+        now = timezone.now()
         
         if appointment_datetime <= now:
             raise serializers.ValidationError("Cannot book appointments in the past.")
