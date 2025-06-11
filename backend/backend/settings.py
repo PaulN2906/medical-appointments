@@ -90,6 +90,7 @@ MIDDLEWARE = [
     'django_otp.middleware.OTPMiddleware', # 2FA Auth
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'appointments.middleware.TransactionMonitoringMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -112,13 +113,24 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+# Database configuration optimized for SQLite concurrency
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            # Enable WAL mode for better concurrency
+            'init_command': '''
+                PRAGMA journal_mode=WAL;
+                PRAGMA synchronous=NORMAL;
+                PRAGMA temp_store=memory;
+                PRAGMA mmap_size=268435456;
+                PRAGMA cache_size=10000;
+                PRAGMA busy_timeout=30000;
+            ''',
+            # Increase timeout for handling concurrent writes
+            'timeout': 30,
+        }
     }
 }
 
@@ -126,6 +138,8 @@ DATABASES = {
 import sys
 if 'test' in sys.argv:
     DATABASES['default']['NAME'] = BASE_DIR / 'test_db.sqlite3'
+    # For tests, use more aggressive settings
+    DATABASES['default']['OPTIONS']['timeout'] = 60
 
 
 # Password validation
@@ -168,6 +182,18 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Connection pooling settings for better performance
+CONN_MAX_AGE = 600  # 10 minutes
+
+# Additional SQLite-specific settings for your thesis
+SQLITE_TRANSACTION_SETTINGS = {
+    'ENABLE_WAL_MODE': True,
+    'MAX_RETRY_ATTEMPTS': 3,
+    'RETRY_DELAY_BASE': 0.1,  # 100ms base delay
+    'ENABLE_TRANSACTION_LOGGING': DEBUG,
+    'DEMONSTRATION_MODE': True, # for demonstrations
+}
 
 # Setare CORS
 CORS_ALLOW_ALL_ORIGINS = False
@@ -217,37 +243,55 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='Medical Appointments 
 # Email sending settings
 EMAIL_TIMEOUT = 30
 
-# Logging Configuration
-if DEBUG:
-    LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'formatters': {
-            'verbose': {
-                'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-                'style': '{',
-            },
-            'simple': {
-                'format': '{levelname} {message}',
-                'style': '{',
-            },
+# Enhanced logging configuration for transaction monitoring
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
         },
-        'handlers': {
-            'console': {
-                'class': 'logging.StreamHandler',
-                'formatter': 'simple',
-            },
-            'file': {
-                'class': 'logging.FileHandler',
-                'filename': 'security.log',
-                'formatter': 'verbose',
-            },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
         },
-        'loggers': {
-            'authentication': {
-                'handlers': ['console', 'file'],
-                'level': 'INFO',
-                'propagate': False,
-            },
+        'transaction': {
+            'format': '[TRANSACTION] {asctime} {levelname} {module}: {message}',
+            'style': '{',
         },
-    }
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'security_file': {
+            'class': 'logging.FileHandler',
+            'filename': 'security.log',
+            'formatter': 'verbose',
+        },
+        'transaction_file': {
+            'class': 'logging.FileHandler',
+            'filename': 'transaction.log',
+            'formatter': 'transaction',
+        },
+    },
+    'loggers': {
+        'appointments': {
+            'handlers': ['console', 'transaction_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'authentication': {
+            'handlers': ['console', 'security_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['transaction_file'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+    },
+}
