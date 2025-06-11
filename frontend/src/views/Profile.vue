@@ -765,8 +765,6 @@ export default {
         };
         store.commit("auth/setUser", updatedUser);
 
-
-
         personalInfoSaved.value = true;
 
         // Hide success message after 3 seconds
@@ -802,11 +800,10 @@ export default {
       savingPassword.value = true;
 
       try {
-        const response = await UserService.changePassword({
+        await UserService.changePassword({
           current_password: passwordForm.currentPassword,
           new_password: passwordForm.newPassword,
         });
-
 
         passwordChanged.value = true;
 

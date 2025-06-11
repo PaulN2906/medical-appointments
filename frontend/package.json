@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "VUE_APP_API_URL=http://127.0.0.1:8000/api/ vue-cli-service serve",
-    "build": "VUE_APP_API_URL=/api/ vue-cli-service build",
+    "serve": "cross-env VUE_APP_API_URL=http://127.0.0.1:8000/api/ vue-cli-service serve",
+    "build": "cross-env VUE_APP_API_URL=/api/ vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "load-test": "VUE_APP_API_URL=http://127.0.0.1:8000/api/ node src/scripts/load-test.js"
+    "load-test": "cross-env VUE_APP_API_URL=http://127.0.0.1:8000/api/ node src/scripts/load-test.js"
   },
   "dependencies": {
     "@fullcalendar/daygrid": "^6.1.17",
@@ -29,6 +29,7 @@
     "@vue/cli-plugin-router": "~5.0.0",
     "@vue/cli-plugin-vuex": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
+    "cross-env": "^7.0.3",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^4.0.0",
