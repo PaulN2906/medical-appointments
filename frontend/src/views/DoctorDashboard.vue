@@ -238,14 +238,22 @@ export default {
 
     // Filtreaza programarile pentru astazi
     const todayAppointments = computed(() => {
-      const today = new Date().toISOString().split("T")[0];
+      const today = new Date();
+      const todayString = today.toISOString().split("T")[0]; // Format: YYYY-MM-DD
       return allAppointments.value
-        .filter(
-          (appointment) =>
+        .filter((appointment) => {
+          // Check if appointment is for today and not cancelled/completed
+          const isToday =
             appointment.schedule_details &&
-            appointment.schedule_details.date === today
-        )
+            appointment.schedule_details.date === todayString;
+          const isActive = ["pending", "confirmed"].includes(
+            appointment.status
+          );
+
+          return isToday && isActive;
+        })
         .sort((a, b) => {
+          // Sort by start time
           return a.schedule_details.start_time.localeCompare(
             b.schedule_details.start_time
           );

@@ -45,7 +45,12 @@
     <div class="row mt-4">
       <div class="col-md-12">
         <div class="card">
-          <div class="card-header">Upcoming Appointments</div>
+          <div
+            class="card-header d-flex justify-content-between align-items-center"
+          >
+            <span>Upcoming Appointments</span>
+            <small class="text-muted">{{ getCurrentDateInfo() }}</small>
+          </div>
           <div class="card-body">
             <div v-if="loading" class="text-center p-4">
               <div class="spinner-border" role="status">
@@ -57,10 +62,23 @@
               v-else-if="upcomingAppointments.length === 0"
               class="text-center p-4"
             >
-              <p>You don't have any upcoming appointments.</p>
+              <div class="mb-3">
+                <i class="bi bi-calendar-check fs-1 text-muted"></i>
+              </div>
+              <p class="mb-3">You don't have any upcoming appointments.</p>
               <router-link to="/book-appointment" class="btn btn-primary"
                 >Book an Appointment</router-link
               >
+
+              <!-- Show link to view all appointments if there might be past ones -->
+              <div class="mt-3">
+                <router-link
+                  to="/appointments"
+                  class="btn btn-outline-secondary btn-sm"
+                >
+                  View All Appointments
+                </router-link>
+              </div>
             </div>
 
             <div v-else class="table-responsive">
@@ -71,6 +89,7 @@
                     <th>Date</th>
                     <th>Time</th>
                     <th>Status</th>
+                    <th>Days Until</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -78,9 +97,21 @@
                   <tr
                     v-for="appointment in upcomingAppointments"
                     :key="appointment.id"
+                    :class="{
+                      'table-warning': isToday(
+                        appointment.schedule_details.date
+                      ),
+                    }"
                   >
                     <td>{{ getDoctorName(appointment) }}</td>
-                    <td>{{ formatDate(appointment.schedule_details.date) }}</td>
+                    <td>
+                      {{ formatDate(appointment.schedule_details.date) }}
+                      <span
+                        v-if="isToday(appointment.schedule_details.date)"
+                        class="badge bg-primary ms-2"
+                        >Today</span
+                      >
+                    </td>
                     <td>
                       {{ formatTime(appointment.schedule_details.start_time) }}
                     </td>
@@ -88,6 +119,11 @@
                       <span :class="getStatusClass(appointment.status)">
                         {{ appointment.status }}
                       </span>
+                    </td>
+                    <td>
+                      <small class="text-muted">
+                        {{ getDaysUntil(appointment.schedule_details.date) }}
+                      </small>
                     </td>
                     <td>
                       <button
@@ -119,7 +155,7 @@
     <div class="row mt-4">
       <div class="col-md-12">
         <div class="card">
-          <div class="card-header">Notifications</div>
+          <div class="card-header">Recent Notifications</div>
           <div class="card-body">
             <div v-if="loadingNotifications" class="text-center p-4">
               <div class="spinner-border" role="status">
@@ -127,13 +163,16 @@
               </div>
             </div>
 
-            <div v-else-if="notifications.length === 0" class="text-center p-4">
-              <p>You don't have any new notifications.</p>
+            <div
+              v-else-if="recentNotifications.length === 0"
+              class="text-center p-4"
+            >
+              <p>You don't have any recent notifications.</p>
             </div>
 
             <div v-else>
               <div
-                v-for="notification in notifications"
+                v-for="notification in recentNotifications"
                 :key="notification.id"
                 class="notification-item mb-3 p-3"
                 :class="{ unread: !notification.read }"
@@ -151,6 +190,15 @@
                   Mark as Read
                 </button>
               </div>
+
+              <div class="text-center mt-3" v-if="notifications.length > 5">
+                <router-link
+                  to="/notifications"
+                  class="btn btn-outline-primary"
+                >
+                  View All Notifications
+                </router-link>
+              </div>
             </div>
           </div>
         </div>
@@ -160,7 +208,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AppointmentService from "@/services/appointment.service";
 import NotificationService from "@/services/notification.service";
@@ -176,14 +224,94 @@ export default {
     const upcomingAppointments = ref([]);
     const notifications = ref([]);
 
-    // Obtine programarile viitoare
+    // Show only the 5 most recent notifications
+    const recentNotifications = computed(() => {
+      return notifications.value.slice(0, 5);
+    });
+
+    // Helper function to check if an appointment is upcoming
+    const isUpcomingAppointment = (appointment) => {
+      if (!appointment.schedule_details?.date) {
+        return false;
+      }
+
+      const appointmentDate = new Date(
+        appointment.schedule_details.date + "T00:00:00"
+      );
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Appointment is upcoming if it's today or in the future
+      return appointmentDate >= today;
+    };
+
+    // Helper function to check if appointment is today
+    const isToday = (dateString) => {
+      const appointmentDate = new Date(dateString + "T00:00:00");
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      appointmentDate.setHours(0, 0, 0, 0);
+
+      return appointmentDate.getTime() === today.getTime();
+    };
+
+    // Helper function to get days until appointment
+    const getDaysUntil = (dateString) => {
+      const appointmentDate = new Date(dateString + "T00:00:00");
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      appointmentDate.setHours(0, 0, 0, 0);
+
+      const diffTime = appointmentDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) return "Today";
+      if (diffDays === 1) return "Tomorrow";
+      if (diffDays > 0) return `In ${diffDays} days`;
+      return `${Math.abs(diffDays)} days ago`;
+    };
+
+    // Get current date info for display
+    const getCurrentDateInfo = () => {
+      const today = new Date();
+      return today.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    };
+
+    // Load upcoming appointments
     const loadAppointments = async () => {
       try {
         const response = await AppointmentService.getAppointments();
-        // Filtreaza doar programarile care nu sunt finalizate sau anulate
-        upcomingAppointments.value = response.data.filter((appointment) =>
-          ["pending", "confirmed"].includes(appointment.status)
-        );
+
+        // Filter appointments that are:
+        // 1. Not cancelled or completed
+        // 2. Scheduled for today or future dates
+        upcomingAppointments.value = response.data.filter((appointment) => {
+          const isActiveStatus = ["pending", "confirmed"].includes(
+            appointment.status
+          );
+          const isUpcoming = isUpcomingAppointment(appointment);
+
+          return isActiveStatus && isUpcoming;
+        });
+
+        // Sort by date and time
+        upcomingAppointments.value.sort((a, b) => {
+          const dateComparison = a.schedule_details.date.localeCompare(
+            b.schedule_details.date
+          );
+          if (dateComparison !== 0) {
+            return dateComparison;
+          }
+          // If same date, sort by start time
+          return a.schedule_details.start_time.localeCompare(
+            b.schedule_details.start_time
+          );
+        });
       } catch (error) {
         console.error("Failed to load appointments", error);
       } finally {
@@ -191,7 +319,7 @@ export default {
       }
     };
 
-    // Obtine notificarile
+    // Load notifications
     const loadNotifications = async () => {
       try {
         const response = await NotificationService.getNotifications();
@@ -203,11 +331,11 @@ export default {
       }
     };
 
-    // Marcheaza o notificare ca citita
+    // Mark notification as read
     const markAsRead = async (notificationId) => {
       try {
         await NotificationService.markAsRead(notificationId);
-        // Actualizeaza starea notificarii in UI
+        // Update notification state in UI
         const notificationIndex = notifications.value.findIndex(
           (n) => n.id === notificationId
         );
@@ -219,7 +347,7 @@ export default {
       }
     };
 
-    // Anuleaza o programare
+    // Cancel an appointment
     const cancelAppointment = async (appointmentId) => {
       if (!confirm("Are you sure you want to cancel this appointment?")) {
         return;
@@ -227,12 +355,13 @@ export default {
 
       try {
         await AppointmentService.cancelAppointment(appointmentId);
-        // Actualizeaza starea programarii in UI
+        // Update appointment state in UI
         const appointmentIndex = upcomingAppointments.value.findIndex(
           (a) => a.id === appointmentId
         );
         if (appointmentIndex !== -1) {
-          upcomingAppointments.value[appointmentIndex].status = "cancelled";
+          // Remove from upcoming appointments since it's now cancelled
+          upcomingAppointments.value.splice(appointmentIndex, 1);
         }
         alert("Appointment cancelled successfully");
       } catch (error) {
@@ -241,12 +370,12 @@ export default {
       }
     };
 
-    // Navigheaza la detaliile programarii
+    // Navigate to appointment details
     const viewAppointment = (appointmentId) => {
       router.push(`/appointments/${appointmentId}`);
     };
 
-    // Helper pentru afisarea numelui medicului
+    // Helper to get doctor name
     const getDoctorName = (appointment) => {
       if (appointment.doctor_details && appointment.doctor_details.user) {
         const user = appointment.doctor_details.user;
@@ -255,13 +384,13 @@ export default {
       return "Unknown Doctor";
     };
 
-    // Helper pentru formatarea datei
+    // Helper to format date
     const formatDate = (dateString) => {
       const options = { year: "numeric", month: "long", day: "numeric" };
       return new Date(dateString).toLocaleDateString(undefined, options);
     };
 
-    // Helper pentru formatarea orei
+    // Helper to format time
     const formatTime = (timeString) => {
       const timeParts = timeString.split(":");
       const date = new Date();
@@ -274,7 +403,7 @@ export default {
       });
     };
 
-    // Helper pentru formatarea datei si orei
+    // Helper to format date and time
     const formatDateTime = (dateTimeString) => {
       const options = {
         year: "numeric",
@@ -286,7 +415,7 @@ export default {
       return new Date(dateTimeString).toLocaleString(undefined, options);
     };
 
-    // Helper pentru obtinerea clasei CSS in functie de status
+    // Helper to get status class
     const getStatusClass = (status) => {
       const statusClasses = {
         pending: "badge bg-warning",
@@ -308,6 +437,10 @@ export default {
       loadingNotifications,
       upcomingAppointments,
       notifications,
+      recentNotifications,
+      isToday,
+      getDaysUntil,
+      getCurrentDateInfo,
       markAsRead,
       cancelAppointment,
       viewAppointment,
@@ -331,5 +464,9 @@ export default {
 .notification-item.unread {
   background-color: #e2f3ff;
   border-left-color: #007bff;
+}
+
+.table-warning {
+  background-color: rgba(255, 193, 7, 0.1) !important;
 }
 </style>
