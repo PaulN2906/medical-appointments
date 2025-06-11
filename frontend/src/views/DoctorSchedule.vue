@@ -599,15 +599,35 @@ export default {
           await DoctorService.createBulkSchedules(slots);
         }
 
-        // Reincarcam calendarul
-        if (calendar.value) {
-          calendar.value.refreshCalendar();
+        // Check if calendar exists and has the method before calling
+        if (
+          calendar.value &&
+          typeof calendar.value.reloadSchedule === "function"
+        ) {
+          try {
+            await calendar.value.reloadSchedule();
+          } catch (reloadError) {
+            console.warn(
+              "Calendar reload failed, but slots were created:",
+              reloadError
+            );
+            // Manual page refresh as fallback
+            window.location.reload();
+          }
+        } else {
+          console.warn(
+            "Calendar component not available for refresh, reloading page"
+          );
+          // Fallback: reload the page
+          window.location.reload();
         }
 
         // Inchidem modalul
         const modalElement = document.getElementById("bulkCreateModal");
         const modal = bootstrap.Modal.getInstance(modalElement);
-        modal.hide();
+        if (modal) {
+          modal.hide();
+        }
 
         alert(`Successfully created ${slots.length} time slots.`);
       } catch (error) {

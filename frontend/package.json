@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "cross-env VUE_APP_API_URL=http://127.0.0.1:8000/api/ vue-cli-service serve",
+    "serve": "cross-env VUE_APP_API_URL=http://localhost:8000/api/ vue-cli-service serve",
     "build": "cross-env VUE_APP_API_URL=/api/ vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "load-test": "cross-env VUE_APP_API_URL=http://127.0.0.1:8000/api/ node src/scripts/load-test.js"
+    "load-test": "cross-env VUE_APP_API_URL=http://localhost:8000/api/ node src/scripts/load-test.js"
   },
   "dependencies": {
     "@fullcalendar/daygrid": "^6.1.17",

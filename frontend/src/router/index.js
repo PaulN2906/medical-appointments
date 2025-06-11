@@ -105,25 +105,38 @@ const router = createRouter({
   routes,
 });
 
-// Navigatie guard pentru a verifica autentificarea si rolurile
-router.beforeEach((to, from, next) => {
+// Enhanced navigation guard that waits for auth check
+router.beforeEach(async (to, from, next) => {
+  // Wait for auth check to complete if it's still running
+  if (store.state.auth.user === undefined) {
+    await new Promise((resolve) => {
+      const unsubscribe = store.watch(
+        () => store.state.auth.user,
+        () => {
+          unsubscribe();
+          resolve();
+        }
+      );
+    });
+  }
+
   const isAuthenticated = store.getters["auth/isAuthenticated"];
 
-  // Verifica daca ruta necesita autentificare
+  // Check if route requires authentication
   if (to.matched.some((record) => record.meta.requiresAuth)) {
     if (!isAuthenticated) {
       next({ name: "Login" });
     } else {
-      // Verifica rolul utilizatorului daca este specificat in meta
+      // Check role if specified
       const user = store.getters["auth/currentUser"];
       if (to.meta.role && user.role !== to.meta.role) {
-        next({ name: "Dashboard" }); // Redirectioneaza la dashboard-ul potrivit
+        next({ name: "Dashboard" });
       } else {
         next();
       }
     }
   }
-  // Verifica daca ruta este doar pentru vizitatori (neautentificati)
+  // Check if route is only for guests (non-authenticated users)
   else if (to.matched.some((record) => record.meta.requiresGuest)) {
     if (isAuthenticated) {
       next({ name: "Dashboard" });

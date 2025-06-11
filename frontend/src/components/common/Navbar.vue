@@ -101,9 +101,15 @@ export default {
     const isDoctor = computed(() => currentUser.value?.role === "doctor");
     const isPatient = computed(() => currentUser.value?.role === "patient");
 
-    const logout = () => {
-      store.dispatch("auth/logout");
-      router.push("/login");
+    const logout = async () => {
+      try {
+        await store.dispatch("auth/logout");
+        router.push("/login");
+      } catch (error) {
+        console.error("Logout failed:", error);
+        store.commit("auth/clearAuth");
+        router.push("/login");
+      }
     };
 
     return {
