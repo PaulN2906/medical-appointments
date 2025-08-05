@@ -23,6 +23,9 @@ class DoctorViewSet(viewsets.ModelViewSet):
         if user.is_staff or user.is_superuser:
             return Doctor.objects.all()
         
+        if hasattr(user, 'profile') and user.profile.role =='admin':
+            return Doctor.objects.all().select_related('user')
+        
         # Doctors can see all doctors (but can only edit their own profile)
         if hasattr(user, "doctor"):
             return Doctor.objects.all()
@@ -79,6 +82,9 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         # Admins can see all schedules
+        if hasattr(user, 'profile') and user.profile.role == 'admin':
+            return Schedule.objects.all().select_related('doctor__user')
+
         if user.is_staff or user.is_superuser:
             return Schedule.objects.all()
         
@@ -100,6 +106,35 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         user = request.user
+        
+        # Admin poate crea schedule pentru orice doctor
+        if hasattr(user, 'profile') and user.profile.role == 'admin':
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            
+            # Pentru admin, doctor_id vine din request data
+            doctor_id = request.data.get('doctor')
+            if not doctor_id:
+                return Response(
+                    {'error': 'Doctor ID is required for admin schedule creation'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            try:
+                doctor = Doctor.objects.get(id=doctor_id)
+                serializer.save(doctor=doctor)
+            except Doctor.DoesNotExist:
+                return Response(
+                    {'error': 'Doctor not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+                
+            headers = self.get_success_headers(serializer.data)
+            return Response(
+                serializer.data, status=status.HTTP_201_CREATED, headers=headers
+            )
+        
+        # Pentru doctori normali
         if not hasattr(user, "doctor"):
             raise PermissionDenied("Only doctors can create schedules.")
 

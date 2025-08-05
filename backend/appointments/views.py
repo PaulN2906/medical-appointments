@@ -4,12 +4,13 @@ from rest_framework.decorators import action
 from django.db import transaction, IntegrityError
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404
-from .models import Appointment
+from django.db.models import Count
+from django.utils import timezone
+from .models import Appointment, Doctor, Patient
 from .serializers import AppointmentSerializer
 from doctors.models import Schedule
 from notifications.models import Notification
 import logging
-import time
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,9 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         
         user = self.request.user
         
-        # Verifica dacă utilizatorul are dreptul sa acceseze acest appointment
+        # Verifica daca utilizatorul are dreptul sa acceseze acest appointment
+        if hasattr(user, 'profile') and user.profile.role == 'admin':
+            return obj
         if hasattr(user, 'doctor') and user.doctor:
             if obj.doctor != user.doctor:
                 raise PermissionDenied("You can only access your own appointments as a doctor.")
@@ -135,7 +138,10 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     def confirm(self, request, pk=None):
         appointment = self.get_object()
         
-        if appointment.status != 'pending':
+        # Admin poate confirma orice appointment
+        if hasattr(request.user, 'profile') and request.user.profile.role == 'admin':
+            pass # Admin are voie
+        elif appointment.status != 'pending':
             return Response(
                 {'error': 'Only pending appointments can be confirmed'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -163,6 +169,9 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     def cancel(self, request, pk=None):
         appointment = self.get_object()
         
+        # Admin poate anula orice appointment
+        if hasattr(request.user, 'profile') and request.user.profile.role == 'admin':
+            pass # Admin are voie
         if appointment.status in ['completed', 'cancelled']:
             return Response(
                 {'error': 'This appointment cannot be cancelled'},
@@ -177,26 +186,77 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         
         from django.utils.html import escape
         
-        # Notificam celalalt participant
-        if request.user == appointment.doctor.user:
-            # Medicul anuleaza
+        # Pentru admin, notificam ambele parti
+        if hasattr(request.user, 'profile') and request.user.profile.role == 'admin':
+            # Notifică pacientul
             safe_doctor_name = escape(appointment.doctor.user.last_name)
             Notification.objects.create(
                 user=appointment.patient.user,
-                type='email',
+                type='email', 
                 title='Appointment Cancelled',
-                message=f'Your appointment with Dr. {safe_doctor_name} on {appointment.schedule.date} has been cancelled.'
+                message=f'Your appointment with Dr. {safe_doctor_name} on {appointment.schedule.date} has been cancelled by the administration.'
             )
-        else:
-            # Pacientul anuleaza
+            
+            # Notifică doctorul
             safe_first_name = escape(appointment.patient.user.first_name)
             safe_last_name = escape(appointment.patient.user.last_name)
             Notification.objects.create(
                 user=appointment.doctor.user,
                 type='system',
                 title='Appointment Cancelled',
-                message=f'The appointment with {safe_first_name} {safe_last_name} on {appointment.schedule.date} has been cancelled.'
+                message=f'The appointment with {safe_first_name} {safe_last_name} on {appointment.schedule.date} has been cancelled by the administration.'
             )
+        else:
+            # Notificam celalalt participant
+            if request.user == appointment.doctor.user:
+                # Medicul anuleaza
+                safe_doctor_name = escape(appointment.doctor.user.last_name)
+                Notification.objects.create(
+                    user=appointment.patient.user,
+                    type='email',
+                    title='Appointment Cancelled',
+                    message=f'Your appointment with Dr. {safe_doctor_name} on {appointment.schedule.date} has been cancelled.'
+                )
+            else:
+                # Pacientul anuleaza
+                safe_first_name = escape(appointment.patient.user.first_name)
+                safe_last_name = escape(appointment.patient.user.last_name)
+                Notification.objects.create(
+                    user=appointment.doctor.user,
+                    type='system',
+                    title='Appointment Cancelled',
+                    message=f'The appointment with {safe_first_name} {safe_last_name} on {appointment.schedule.date} has been cancelled.'
+                )
         
         logger.info(f"Appointment {appointment.id} cancelled by user {request.user.id}")
         return Response({'status': 'appointment cancelled'})
+    
+    @action(detail=False, methods=['get'])
+    def admin_stats(self, request):
+        """Admin-only endpoint pentru statistici dashboard"""
+        if not (hasattr(request.user, 'profile') and request.user.profile.role == 'admin'):
+            raise PermissionDenied("Admin access required")
+        
+        today = timezone.now().date()
+
+        # Statistici de baza
+        stats = {
+            'total_appointments': Appointment.objects.count(),
+            'appointments_today': Appointment.objects.filter(
+                schedule__date=today,
+            ).count(),
+            'appoinments_by_status': dict(
+                Appointment.objects.values('status').annotate(
+                    count=Count('id')
+                ).values_list('status', 'count')
+            ),
+            'total_doctors': Doctor.objects.count(),
+            'total_patients': Patient.objects.count(),
+            'recent_appointments': AppointmentSerializer(
+                Appointment.objects.select_related(
+                    'doctor__user', 'patient__user', 'schedule'
+                ).order_by('-created_at')[:5], many=True
+            ).data
+        }
+
+        return Response(stats)
