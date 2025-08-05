@@ -36,6 +36,11 @@
               Book Appointment
             </router-link>
           </li>
+          <li class="nav-item" v-if="isAuthenticated && isAdmin">
+            <router-link class="nav-link" to="/admin">
+              Admin Dashboard
+            </router-link>
+          </li>
         </ul>
 
         <ul class="navbar-nav ms-auto">
@@ -100,6 +105,7 @@ export default {
 
     const isDoctor = computed(() => currentUser.value?.role === "doctor");
     const isPatient = computed(() => currentUser.value?.role === "patient");
+    const isAdmin = computed(() => currentUser.value?.role === "admin");
 
     const logout = async () => {
       try {
@@ -117,6 +123,7 @@ export default {
       currentUser,
       isDoctor,
       isPatient,
+      isAdmin,
       logout,
     };
   },

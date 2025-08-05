@@ -11,6 +11,8 @@ import AppointmentConfirmation from "../views/AppointmentConfirmation.vue";
 import TwoFactorAuth from "../views/TwoFactorAuth.vue";
 import store from "@/store";
 
+const AdminDashboard = () => import("../views/AdminDashboard.vue");
+
 const routes = [
   {
     path: "/",
@@ -97,6 +99,12 @@ const routes = [
     name: "TwoFactorAuth",
     component: TwoFactorAuth,
     meta: { requiresAuth: true },
+  },
+  {
+    path: "/admin",
+    name: "AdminDashboard",
+    component: AdminDashboard,
+    meta: { requiresAuth: true, role: "admin" },
   },
 ];
 

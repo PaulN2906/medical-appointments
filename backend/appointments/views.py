@@ -21,18 +21,20 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         
-        # Verifica explicit rolul utilizatorului
+        # Admin vede toate appointment-urile
+        if hasattr(user, 'profile') and user.profile.role == 'admin':
+            return Appointment.objects.all().select_related(
+                'doctor__user', 'patient__user', 'schedule'
+            ).order_by('-created_at')
+        
+        # Doctor/pacient vede doar programarile proprii
         if hasattr(user, 'doctor') and user.doctor:
-            # Doctorul vede doar appointment-urile sale
             return Appointment.objects.filter(doctor=user.doctor)
         elif hasattr(user, 'patient') and user.patient:
-            # Pacientul vede doar appointment-urile sale
             return Appointment.objects.filter(patient=user.patient)
         elif user.is_staff or user.is_superuser:
-            # Admin-ul vede toate appointment-urile
             return Appointment.objects.all()
         else:
-            # Utilizatori fara rol valid nu vad nimic
             return Appointment.objects.none()
         
     def get_object(self):
