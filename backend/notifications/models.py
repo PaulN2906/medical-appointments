@@ -26,9 +26,39 @@ class Notification(models.Model):
     
     class Meta:
         ordering = ['-created_at']
-    
+
     def __str__(self):
         return f"{self.title} to {self.user.username}"
+
+    @classmethod
+    def send_appointment_reminder(cls, appointment):
+        """Create an email notification for an upcoming appointment.
+
+        The email is sent immediately via :class:`EmailService` and the
+        resulting notification record is stored with the appropriate
+        ``email_sent`` metadata so the post-save signal does not attempt to
+        resend it.
+        """
+        from django.utils import timezone
+        from .email_service import EmailService
+
+        user = appointment.patient.user
+        title = "Appointment Reminder"
+        message = (
+            f"You have an appointment with Dr. {appointment.doctor.user.last_name} "
+            f"on {appointment.schedule.date} at {appointment.schedule.start_time}."
+        )
+
+        email_success = EmailService.send_appointment_reminder(user, appointment)
+
+        return cls.objects.create(
+            user=user,
+            type='email',
+            title=title,
+            message=message,
+            email_sent=email_success,
+            email_sent_at=timezone.now() if email_success else None,
+        )
 
 @receiver(post_save, sender=Notification)
 def send_email_notification(sender, instance, created, **kwargs):
