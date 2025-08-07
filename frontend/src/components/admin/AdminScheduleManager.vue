@@ -251,6 +251,37 @@ export default {
       }
     };
 
+    const deleteSchedule = async (scheduleId) => {
+      // Confirma stergerea
+      if (
+        !confirm(
+          "Are you sure you want to delete this schedule? This action cannot be undone."
+        )
+      ) {
+        return;
+      }
+
+      try {
+        // Apeleaza endpoint-ul pentru stergerea programului
+        await AdminService.deleteSchedule(scheduleId);
+
+        // Actualizeaza lista locala eliminand programul sters
+        schedules.value = schedules.value.filter(
+          (schedule) => schedule.id !== scheduleId
+        );
+
+        console.log(`Schedule ${scheduleId} deleted successfully`);
+      } catch (error) {
+        console.error("Failed to delete schedule", error);
+
+        // Afiseaza eroarea pentru utilizator
+        const errorMessage =
+          error.response?.data?.error ||
+          "Failed to delete schedule. Please try again.";
+        alert(errorMessage);
+      }
+    };
+
     const resetForm = () => {
       Object.keys(scheduleForm).forEach((key) => (scheduleForm[key] = ""));
     };
@@ -278,6 +309,7 @@ export default {
       scheduleForm,
       filteredSchedules,
       createSchedule,
+      deleteSchedule,
       formatDate,
       formatTime,
     };

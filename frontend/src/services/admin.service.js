@@ -37,4 +37,25 @@ export default {
   bulkCreateSchedules(schedules) {
     return api.post("doctors/schedules/bulk_create/", schedules);
   },
+
+  deleteSchedule(scheduleId) {
+    return api.delete(`doctors/schedules/${scheduleId}/`);
+  },
+
+  // User management methods
+  getAllUsers() {
+    return api.get("auth/users/admin/all/");
+  },
+
+  updateUser(userId, userData) {
+    return api.put(`auth/users/${userId}/admin/update/`, userData);
+  },
+
+  resetUserPassword(userId) {
+    return api.post(`auth/users/${userId}/admin/reset-password/`);
+  },
+
+  toggleUserActive(userId) {
+    return api.post(`auth/users/${userId}/admin/toggle-active/`);
+  },
 };

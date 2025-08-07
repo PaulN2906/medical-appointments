@@ -111,6 +111,11 @@
                     <h6 class="card-title mb-0">
                       Dr. {{ doctor.user.last_name }}
                       {{ doctor.user.first_name }}
+                      <span
+                        v-if="!doctor.is_active"
+                        class="badge bg-danger ms-2"
+                        >Inactive</span
+                      >
                     </h6>
                     <span class="badge bg-success">Doctor</span>
                   </div>
@@ -195,6 +200,11 @@
                   >
                     <h6 class="card-title mb-0">
                       {{ patient.user.first_name }} {{ patient.user.last_name }}
+                      <span
+                        v-if="!patient.is_active"
+                        class="badge bg-danger ms-2"
+                        >Inactive</span
+                      >
                     </h6>
                     <span class="badge bg-info">Patient</span>
                   </div>
@@ -402,43 +412,68 @@ export default {
       showEditModal.value = true;
     };
 
-    const resetPassword = async () => {
+    const resetPassword = async (userId, userEmail) => {
       if (
         !confirm(
-          "Are you sure you want to reset this user's password? They will receive a new temporary password."
+          `Are you sure you want to reset the password for ${userEmail}? A temporary password will be generated.`
         )
       ) {
         return;
       }
 
       try {
-        // TODO: Implement password reset functionality
+        const response = await AdminService.resetUserPassword(userId);
+
+        // Show the temporary password (in practica, s-ar trimite prin email)
         alert(
-          "Password reset functionality will be implemented in the next iteration."
+          `Password reset successfully!\n\n` +
+            `Temporary password: ${response.data.temporary_password}\n\n` +
+            `Please securely share this with the user. They should change it on first login.`
         );
+
+        console.log("Password reset for user:", userId);
       } catch (error) {
         console.error("Failed to reset password", error);
-        alert("Failed to reset password");
+        const errorMsg =
+          error.response?.data?.error || "Failed to reset password";
+        alert(`Error: ${errorMsg}`);
       }
     };
 
-    const deactivateUser = async () => {
+    const deactivateUser = async (userId, username, isActive) => {
+      const action = isActive ? "deactivate" : "activate";
+
       if (
         !confirm(
-          "Are you sure you want to deactivate this user? They will not be able to log in."
+          `Are you sure you want to ${action} user "${username}"?${
+            isActive ? " They will not be able to log in." : ""
+          }`
         )
       ) {
         return;
       }
 
       try {
-        // TODO: Implement user deactivation functionality
-        alert(
-          "User deactivation functionality will be implemented in the next iteration."
-        );
+        const response = await AdminService.toggleUserActive(userId);
+
+        // Update the local state
+        const updateUserInList = (list) => {
+          const userIndex = list.findIndex((user) => user.id === userId);
+          if (userIndex !== -1) {
+            list[userIndex].is_active = response.data.is_active;
+          }
+        };
+
+        updateUserInList(doctors.value);
+        updateUserInList(patients.value);
+
+        const newStatus = response.data.is_active ? "activated" : "deactivated";
+        alert(`User "${username}" has been ${newStatus} successfully.`);
       } catch (error) {
-        console.error("Failed to deactivate user", error);
-        alert("Failed to deactivate user");
+        console.error("Failed to toggle user status", error);
+        const errorMsg =
+          error.response?.data?.error || "Failed to update user status";
+        alert(`Error: ${errorMsg}`);
       }
     };
 

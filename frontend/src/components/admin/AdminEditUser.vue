@@ -169,7 +169,8 @@ export default {
         const updateData = {
           first_name: form.firstName,
           last_name: form.lastName,
-          // Note: email is readonly, so we don't include it
+          email: form.email, // Include email in case admin wants to change it
+          phone_number: form.phoneNumber || "",
         };
 
         // Add role-specific data
@@ -177,21 +178,41 @@ export default {
           updateData.speciality = form.speciality;
           updateData.description = form.description;
         } else if (props.userType === "patient") {
-          updateData.date_of_birth = form.dateOfBirth;
+          if (form.dateOfBirth) {
+            updateData.date_of_birth = form.dateOfBirth;
+          }
         }
 
-        // TODO: Implement actual API call to update user
-        // For now, simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Call API
+        const response = await AdminService.updateUser(
+          props.user.id,
+          updateData
+        );
 
         success.value = "User updated successfully!";
 
         setTimeout(() => {
-          emit("updated");
+          emit("updated", response.data);
         }, 1500);
       } catch (err) {
         console.error("Failed to update user", err);
-        error.value = err.response?.data || "Failed to update user";
+
+        if (err.response?.data?.error) {
+          error.value = err.response.data.error;
+        } else if (typeof err.response?.data === "object") {
+          // Handle validation errors
+          const errors = [];
+          for (const [field, messages] of Object.entries(err.response.data)) {
+            if (Array.isArray(messages)) {
+              errors.push(`${field}: ${messages.join(", ")}`);
+            } else {
+              errors.push(`${field}: ${messages}`);
+            }
+          }
+          error.value = errors.join("; ");
+        } else {
+          error.value = "Failed to update user";
+        }
       } finally {
         updating.value = false;
       }

@@ -183,3 +183,45 @@ class ScheduleViewSet(viewsets.ModelViewSet):
 
         # Save all schedules and assign to the requesting doctor
         serializer.save(doctor=user.doctor)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Sterge un schedule din calendar
+        Doar adminii si doctorii pot sterge
+        """
+        schedule = self.get_object()
+        user = request.user
+        
+        # Verifica permisiunile
+        if hasattr(user, 'profile') and user.profile.role == 'admin':
+            # Admin poate sterge orice schedule
+            pass
+        elif hasattr(user, 'doctor') and user.doctor == schedule.doctor:
+            # Doctorul poate sterge doar propriile schedule
+            pass
+        else:
+            raise PermissionDenied("You don't have permission to delete this schedule.")
+        
+        # Verifica daca schedule are programari active
+        from appointments.models import Appointment
+        active_appointments = Appointment.objects.filter(
+            schedule=schedule,
+            status__in=['pending', 'confirmed']
+        )
+        
+        if active_appointments.exists():
+            return Response(
+                {'error': 'Cannot delete schedule with active appointments. Please cancel or reschedule the appointments first.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Sterge schedule
+        schedule_id = schedule.id
+        schedule.delete()
+        
+        logger.info(f"Schedule {schedule_id} deleted by user {request.user.id}")
+        
+        return Response(
+            {'message': f'Schedule {schedule_id} deleted successfully'},
+            status=status.HTTP_204_NO_CONTENT
+        )
