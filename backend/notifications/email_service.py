@@ -66,6 +66,33 @@ class EmailService:
         except Exception as e:
             logger.error(f"Error sending email for notification {notification.id}: {str(e)}")
             return False
+
+    @staticmethod
+    def send_appointment_reminder(user, appointment):
+        """Send a reminder email for an upcoming appointment."""
+
+        try:
+            class ReminderNotification:
+                """Lightweight structure mimicking a Notification instance."""
+
+                def __init__(self, user, appointment):
+                    self.user = user
+                    self.type = 'email'
+                    self.title = 'Appointment Reminder'
+                    self.message = (
+                        f"You have an appointment with Dr. {appointment.doctor.user.last_name} "
+                        f"on {appointment.schedule.date} at {appointment.schedule.start_time}."
+                    )
+                    self.id = appointment.id
+
+            reminder = ReminderNotification(user, appointment)
+            return EmailService.send_notification_email(reminder)
+
+        except Exception as e:
+            logger.error(
+                f"Error sending appointment reminder for appointment {appointment.id}: {str(e)}"
+            )
+            return False
     
     @staticmethod
     def _generate_html_content(context):
