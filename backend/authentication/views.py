@@ -337,8 +337,62 @@ class UserViewSet(viewsets.ModelViewSet):
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"2FA attempt with invalid user_id {user_id} from IP {request.META.get('REMOTE_ADDR')}")
-            
+
             return Response({'error': 'Invalid request'}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
+    def verify_backup_code(self, request):
+        """Authenticate a user using a backup code."""
+        user_id = request.data.get('user_id')
+        code = request.data.get('code')
+
+        if not user_id or not code:
+            return Response(
+                {'error': 'User ID and code are required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user = User.objects.get(id=user_id)
+            profile = UserProfile.objects.get(user=user)
+        except (User.DoesNotExist, UserProfile.DoesNotExist):
+            return Response({'error': 'Invalid request'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not profile.verify_backup_code(code):
+            return Response({'error': 'Invalid backup code'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        token, _ = Token.objects.get_or_create(user=user)
+
+        doctor_id = None
+        patient_id = None
+
+        if profile.role == 'doctor' and hasattr(user, 'doctor'):
+            doctor_id = user.doctor.id
+        elif profile.role == 'patient' and hasattr(user, 'patient'):
+            patient_id = user.patient.id
+
+        response = Response(
+            {
+                'user_id': user.id,
+                'email': user.email,
+                'role': profile.role,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'doctor_id': doctor_id,
+                'patient_id': patient_id,
+                'two_fa_enabled': profile.two_fa_enabled,
+            },
+            status=status.HTTP_200_OK,
+        )
+        secure = not getattr(settings, 'DEBUG', False)
+        response.set_cookie(
+            'auth_token',
+            token.key,
+            httponly=True,
+            secure=secure,
+            samesite='Lax',
+        )
+        return response
     
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def get_2fa_status(self, request):
