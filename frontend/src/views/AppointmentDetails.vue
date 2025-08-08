@@ -28,7 +28,14 @@
                   <h5>Date & Time</h5>
                   <p class="mb-1">
                     <strong>Date:</strong>
-                    {{ formatDate(appointment.schedule_details.date) }}
+                    {{
+                      formatDate(appointment.schedule_details.date, {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
+                    }}
                   </p>
                   <p>
                     <strong>Time:</strong>
@@ -40,7 +47,11 @@
                   <h5>{{ isDoctor ? "Patient" : "Doctor" }}</h5>
                   <p class="mb-1">
                     <strong>Name:</strong>
-                    {{ isDoctor ? getPatientName() : getDoctorName() }}
+                    {{
+                      isDoctor
+                        ? getPatientName(appointment)
+                        : getDoctorName(appointment)
+                    }}
                   </p>
                   <p v-if="!isDoctor">
                     <strong>Speciality:</strong>
@@ -120,6 +131,14 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useStore } from "vuex";
 import AppointmentService from "@/services/appointment.service";
+import {
+  getDoctorName,
+  getPatientName,
+  formatDate,
+  formatTime,
+  formatDateTime,
+  getStatusClass,
+} from "@/utils/formatters";
 
 export default {
   name: "AppointmentDetails",
@@ -201,80 +220,6 @@ export default {
     // Navigheaza inapoi la pagina anterioara
     const goBack = () => {
       router.back();
-    };
-
-    // Helper pentru afisarea numelui pacientului
-    const getPatientName = () => {
-      if (
-        appointment.value &&
-        appointment.value.patient_details &&
-        appointment.value.patient_details.user
-      ) {
-        const user = appointment.value.patient_details.user;
-        return `${user.first_name} ${user.last_name}`;
-      }
-      return "Unknown Patient";
-    };
-
-    // Helper pentru afisarea numelui medicului
-    const getDoctorName = () => {
-      if (
-        appointment.value &&
-        appointment.value.doctor_details &&
-        appointment.value.doctor_details.user
-      ) {
-        const user = appointment.value.doctor_details.user;
-        return `Dr. ${user.last_name} ${user.first_name}`;
-      }
-      return "Unknown Doctor";
-    };
-
-    // Helper pentru formatarea datei
-    const formatDate = (dateString) => {
-      const options = {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      };
-      return new Date(dateString).toLocaleDateString(undefined, options);
-    };
-
-    // Helper pentru formatarea orei
-    const formatTime = (timeString) => {
-      const timeParts = timeString.split(":");
-      const date = new Date();
-      date.setHours(parseInt(timeParts[0], 10));
-      date.setMinutes(parseInt(timeParts[1], 10));
-
-      return date.toLocaleTimeString(undefined, {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    };
-
-    // Helper pentru formatarea datei si orei
-    const formatDateTime = (dateTimeString) => {
-      const options = {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      };
-      return new Date(dateTimeString).toLocaleString(undefined, options);
-    };
-
-    // Helper pentru obtinerea clasei CSS in functie de status
-    const getStatusClass = (status) => {
-      const statusClasses = {
-        pending: "badge bg-warning",
-        confirmed: "badge bg-success",
-        cancelled: "badge bg-danger",
-        completed: "badge bg-info",
-      };
-
-      return statusClasses[status] || "badge bg-secondary";
     };
 
     onMounted(() => {
