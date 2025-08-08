@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.db import transaction, IntegrityError
 from django.core.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from django.shortcuts import get_object_or_404
 from django.db.models import Count
 from django.utils import timezone
@@ -123,7 +124,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
         except PermissionDenied:
             raise
-        except ValidationError as e:
+        except (ValidationError, DRFValidationError) as e:
             logger.warning(f"Appointment booking failed for schedule {schedule_id}: {str(e)}")
             return Response(
                 {'error': str(e)},
