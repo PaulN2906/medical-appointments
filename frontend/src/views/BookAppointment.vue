@@ -199,6 +199,7 @@ import DoctorService from "@/services/doctor.service";
 import AppointmentService from "@/services/appointment.service";
 import DoctorCalendar from "@/components/calendar/DoctorCalendar.vue";
 import { useStore } from "vuex";
+import { formatDate, formatTime } from "@/utils/formatters";
 
 export default {
   name: "BookAppointment",
@@ -288,21 +289,6 @@ export default {
       } finally {
         booking.value = false;
       }
-    };
-
-    const formatDate = (dateString) => {
-      return new Date(dateString).toLocaleDateString("ro-RO", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    };
-
-    const formatTime = (timeString) => {
-      return new Date(`1970-01-01T${timeString}:00`).toLocaleTimeString(
-        "ro-RO",
-        { hour: "2-digit", minute: "2-digit" }
-      );
     };
 
     onMounted(loadDoctors);
