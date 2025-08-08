@@ -196,7 +196,6 @@
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import DoctorService from "@/services/doctor.service";
-import AppointmentService from "@/services/appointment.service";
 import DoctorCalendar from "@/components/calendar/DoctorCalendar.vue";
 import { useStore } from "vuex";
 import { formatDate, formatTime } from "@/utils/formatters";
@@ -276,16 +275,20 @@ export default {
           notes: appointmentNotes.value || "",
         };
 
-        await AppointmentService.createAppointment(appointmentData);
-        router.push("/appointment-confirmation");
+        const result = await store.dispatch(
+          "appointments/createAppointment",
+          appointmentData
+        );
+
+        if (result.success) {
+          router.push("/appointment-confirmation");
+        } else {
+          bookingError.value =
+            result.error || "Failed to book appointment. Please try again.";
+        }
       } catch (error) {
         console.error("Failed to book appointment", error);
-        let errorMessage = "Failed to book appointment. Please try again.";
-        if (error.response?.data) {
-          const data = error.response.data;
-          errorMessage = data.error || data.detail || errorMessage;
-        }
-        bookingError.value = errorMessage;
+        bookingError.value = "Failed to book appointment. Please try again.";
       } finally {
         booking.value = false;
       }
