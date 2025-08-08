@@ -105,6 +105,7 @@
 
 <script>
 import { ref, reactive, onMounted, watch } from "vue";
+import AdminService from "@/services/admin.service";
 
 export default {
   name: "AdminEditUser",
