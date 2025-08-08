@@ -31,9 +31,13 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         
         # Doctor/pacient vede doar programarile proprii
         if hasattr(user, 'doctor') and user.doctor:
-            return Appointment.objects.filter(doctor=user.doctor)
+            return Appointment.objects.filter(doctor=user.doctor).select_related(
+                'doctor__user', 'patient__user', 'schedule'
+            )
         elif hasattr(user, 'patient') and user.patient:
-            return Appointment.objects.filter(patient=user.patient)
+            return Appointment.objects.filter(patient=user.patient).select_related(
+                'doctor__user', 'patient__user', 'schedule'
+            )
         elif user.is_staff or user.is_superuser:
             return Appointment.objects.all()
         else:
