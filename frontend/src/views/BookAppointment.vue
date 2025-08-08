@@ -293,7 +293,7 @@ export default {
 
     onMounted(loadDoctors);
 
-    watch(selectSlot, () => {
+    watch(selectedSlot, () => {
       appointmentNotes.value = "";
       confirmed.value = false;
     });
