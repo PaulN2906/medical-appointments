@@ -208,6 +208,12 @@ import { useRouter } from "vue-router";
 import AppointmentService from "@/services/appointment.service";
 import NotificationService from "@/services/notification.service";
 import DoctorCalendar from "@/components/calendar/DoctorCalendar.vue";
+import {
+  getPatientName,
+  formatTime,
+  formatDateTime,
+  getStatusClass,
+} from "@/utils/formatters";
 
 export default {
   name: "DoctorDashboard",
@@ -333,52 +339,6 @@ export default {
     // Navigheaza la detaliile programarii
     const viewAppointment = (appointmentId) => {
       router.push(`/appointments/${appointmentId}`);
-    };
-
-    // Helper pentru afisarea numelui pacientului
-    const getPatientName = (appointment) => {
-      if (appointment.patient_details && appointment.patient_details.user) {
-        const user = appointment.patient_details.user;
-        return `${user.first_name} ${user.last_name}`;
-      }
-      return "Unknown Patient";
-    };
-
-    // Helper pentru formatarea orei
-    const formatTime = (timeString) => {
-      const timeParts = timeString.split(":");
-      const date = new Date();
-      date.setHours(parseInt(timeParts[0], 10));
-      date.setMinutes(parseInt(timeParts[1], 10));
-
-      return date.toLocaleTimeString(undefined, {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    };
-
-    // Helper pentru formatarea datei si orei
-    const formatDateTime = (dateTimeString) => {
-      const options = {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      };
-      return new Date(dateTimeString).toLocaleString(undefined, options);
-    };
-
-    // Helper pentru obtinerea clasei CSS in functie de status
-    const getStatusClass = (status) => {
-      const statusClasses = {
-        pending: "badge bg-warning",
-        confirmed: "badge bg-success",
-        cancelled: "badge bg-danger",
-        completed: "badge bg-info",
-      };
-
-      return statusClasses[status] || "badge bg-secondary";
     };
 
     onMounted(() => {

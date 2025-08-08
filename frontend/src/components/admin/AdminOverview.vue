@@ -126,6 +126,13 @@
 <script>
 import { ref, onMounted } from "vue";
 import AdminService from "@/services/admin.service";
+import {
+  getPatientName,
+  getDoctorName,
+  formatTime,
+  formatDateTime,
+  getStatusClass,
+} from "@/utils/formatters";
 
 export default {
   name: "AdminOverview",
@@ -144,56 +151,6 @@ export default {
       } finally {
         loading.value = false;
       }
-    };
-
-    const getPatientName = (appointment) => {
-      if (appointment.patient_details?.user) {
-        const user = appointment.patient_details.user;
-        return `${user.first_name} ${user.last_name}`;
-      }
-      return "Unknown Patient";
-    };
-
-    const getDoctorName = (appointment) => {
-      if (appointment.doctor_details?.user) {
-        const user = appointment.doctor_details.user;
-        return `Dr. ${user.last_name} ${user.first_name}`;
-      }
-      return "Unknown Doctor";
-    };
-
-    const formatTime = (timeString) => {
-      if (!timeString) return "";
-      const timeParts = timeString.split(":");
-      const date = new Date();
-      date.setHours(parseInt(timeParts[0], 10));
-      date.setMinutes(parseInt(timeParts[1], 10));
-      return date.toLocaleTimeString(undefined, {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    };
-
-    const formatDateTime = (dateTimeString) => {
-      if (!dateTimeString) return "";
-      const options = {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      };
-      return new Date(dateTimeString).toLocaleString(undefined, options);
-    };
-
-    const getStatusClass = (status) => {
-      const statusClasses = {
-        pending: "badge bg-warning",
-        confirmed: "badge bg-success",
-        cancelled: "badge bg-danger",
-        completed: "badge bg-info",
-      };
-      return statusClasses[status] || "badge bg-secondary";
     };
 
     onMounted(() => {
