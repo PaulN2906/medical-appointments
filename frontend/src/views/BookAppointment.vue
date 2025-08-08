@@ -63,133 +63,125 @@
         <div class="card">
           <div class="card-header">Select Date and Time</div>
           <div class="card-body">
-            <div v-if="loadingSchedule" class="text-center p-4">
-              <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <h5>
+                  Doctor: Dr. {{ selectedDoctor.user.last_name }}
+                  {{ selectedDoctor.user.first_name }}
+                </h5>
+                <p>Speciality: {{ selectedDoctor.speciality }}</p>
+              </div>
+              <div class="col-md-6 text-end">
+                <button
+                  @click="clearSelection"
+                  class="btn btn-outline-secondary"
+                >
+                  Change Doctor
+                </button>
               </div>
             </div>
 
-            <div v-else>
-              <div class="row mb-4">
-                <div class="col-md-6">
-                  <h5>
-                    Doctor: Dr. {{ selectedDoctor.user.last_name }}
-                    {{ selectedDoctor.user.first_name }}
-                  </h5>
-                  <p>Speciality: {{ selectedDoctor.speciality }}</p>
-                </div>
-                <div class="col-md-6 text-end">
-                  <button
-                    @click="clearSelection"
-                    class="btn btn-outline-secondary"
-                  >
-                    Change Doctor
-                  </button>
-                </div>
-              </div>
+            <div class="doctor-calendar-wrapper mb-4">
+              <DoctorCalendar
+                :doctorId="selectedDoctor.id"
+                :editable="false"
+                :showUnavailable="false"
+                :allowSelect="true"
+                @selectSlot="selectSlot"
+              />
+            </div>
 
-              <div class="doctor-calendar-wrapper mb-4">
-                <DoctorCalendar
-                  :doctorId="selectedDoctor.id"
-                  :editable="false"
-                  :showUnavailable="false"
-                  :allowSelect="true"
-                  @selectSlot="selectSlot"
-                />
-              </div>
+            <!-- Booking form displayed immediately after calendar click -->
+            <div v-if="selectedSlot">
+              <div class="card">
+                <div class="card-header">Appointment Details</div>
+                <div class="card-body">
+                  <form @submit.prevent="bookAppointment">
+                    <div class="mb-3">
+                      <label class="form-label">Doctor</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        :value="`Dr. ${selectedDoctor.user.last_name} ${selectedDoctor.user.first_name}`"
+                        disabled
+                      />
+                    </div>
 
-              <!-- Booking form displayed immediately after calendar click -->
-              <div v-if="selectedSlot">
-                <div class="card">
-                  <div class="card-header">Appointment Details</div>
-                  <div class="card-body">
-                    <form @submit.prevent="bookAppointment">
-                      <div class="mb-3">
-                        <label class="form-label">Doctor</label>
-                        <input
-                          type="text"
-                          class="form-control"
-                          :value="`Dr. ${selectedDoctor.user.last_name} ${selectedDoctor.user.first_name}`"
-                          disabled
-                        />
-                      </div>
+                    <div class="mb-3">
+                      <label class="form-label">Date</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        :value="formatDate(selectedSlot.date)"
+                        disabled
+                      />
+                    </div>
 
-                      <div class="mb-3">
-                        <label class="form-label">Date</label>
-                        <input
-                          type="text"
-                          class="form-control"
-                          :value="formatDate(selectedSlot.date)"
-                          disabled
-                        />
-                      </div>
+                    <div class="mb-3">
+                      <label class="form-label">Time</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        :value="`${formatTime(
+                          selectedSlot.start_time
+                        )} - ${formatTime(selectedSlot.end_time)}`"
+                        disabled
+                      />
+                    </div>
 
-                      <div class="mb-3">
-                        <label class="form-label">Time</label>
-                        <input
-                          type="text"
-                          class="form-control"
-                          :value="`${formatTime(
-                            selectedSlot.start_time
-                          )} - ${formatTime(selectedSlot.end_time)}`"
-                          disabled
-                        />
-                      </div>
+                    <div class="mb-3">
+                      <label for="notes" class="form-label"
+                        >Reason for Visit (optional)</label
+                      >
+                      <textarea
+                        id="notes"
+                        class="form-control"
+                        v-model="appointmentNotes"
+                        rows="3"
+                        placeholder="Describe your symptoms or reason for the appointment"
+                      ></textarea>
+                    </div>
 
-                      <div class="mb-3">
-                        <label for="notes" class="form-label"
-                          >Reason for Visit (optional)</label
-                        >
-                        <textarea
-                          id="notes"
-                          class="form-control"
-                          v-model="appointmentNotes"
-                          rows="3"
-                          placeholder="Describe your symptoms or reason for the appointment"
-                        ></textarea>
-                      </div>
+                    <div class="mb-3 form-check">
+                      <input
+                        type="checkbox"
+                        class="form-check-input"
+                        id="confirmCheck"
+                        v-model="confirmed"
+                        required
+                      />
+                      <label class="form-check-label" for="confirmCheck">
+                        I confirm that the information provided is correct and I
+                        will attend this appointment
+                      </label>
+                    </div>
 
-                      <div class="mb-3 form-check">
-                        <input
-                          type="checkbox"
-                          class="form-check-input"
-                          id="confirmCheck"
-                          v-model="confirmed"
-                          required
-                        />
-                        <label class="form-check-label" for="confirmCheck">
-                          I confirm that the information provided is correct and
-                          I will attend this appointment
-                        </label>
-                      </div>
+                    <div v-if="bookingError" class="alert alert-danger">
+                      {{ bookingError }}
+                    </div>
 
-                      <div v-if="bookingError" class="alert alert-danger">
-                        {{ bookingError }}
-                      </div>
-
-                      <div class="text-end">
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary me-2"
-                          @click="clearSlotSelection"
-                        >
-                          Change Time Slot
-                        </button>
-                        <button
-                          type="submit"
-                          class="btn btn-success"
-                          :disabled="!confirmed || booking"
-                        >
-                          <span
-                            v-if="booking"
-                            class="spinner-border spinner-border-sm me-2"
-                            role="status"
-                          ></span>
-                          Book Appointment
-                        </button>
-                      </div>
-                    </form>
-                  </div>
+                    <div class="text-end">
+                      <button
+                        type="button"
+                        class="btn btn-outline-secondary me-2"
+                        @click="clearSlotSelection"
+                      >
+                        Change Time Slot
+                      </button>
+                      <button
+                        type="submit"
+                        class="btn btn-success"
+                        :disabled="!confirmed || booking"
+                      >
+                        <span
+                          v-if="booking"
+                          class="spinner-border spinner-border-sm me-2"
+                          role="status"
+                        ></span>
+                        Book Appointment
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </div>
             </div>
@@ -217,7 +209,6 @@ export default {
     const store = useStore();
 
     const loadingDoctors = ref(true);
-    const loadingSchedule = ref(false);
     const doctors = ref([]);
     const selectedDoctor = ref(null);
     const selectedSlot = ref(null);
@@ -323,7 +314,6 @@ export default {
 
     return {
       loadingDoctors,
-      loadingSchedule,
       doctors,
       selectedDoctor,
       selectedSlot,
