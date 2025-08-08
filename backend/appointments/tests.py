@@ -143,6 +143,30 @@ class AppointmentBookingTest(TestCase):
         self.schedule.refresh_from_db()
         self.assertTrue(self.schedule.is_available)
 
+    def test_cannot_cancel_past_appointment(self):
+        past_date = timezone.localdate() - timedelta(days=1)
+        past_schedule = Schedule.objects.create(
+            doctor=self.doctor,
+            date=past_date,
+            start_time=time(9, 0),
+            end_time=time(10, 0),
+            is_available=True,
+        )
+
+        appointment = Appointment.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            schedule=past_schedule,
+            status='confirmed',
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=self.patient_user)
+        cancel_url = reverse('appointment-cancel', kwargs={'pk': appointment.id})
+        response = client.post(cancel_url, secure=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('cannot cancel past appointments', str(response.data).lower())
+
     def test_patient_cannot_confirm_appointment(self):
         client = APIClient()
         client.force_authenticate(user=self.patient_user)
