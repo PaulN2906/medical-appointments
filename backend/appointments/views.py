@@ -7,6 +7,7 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 from django.shortcuts import get_object_or_404
 from django.db.models import Count
 from django.utils import timezone
+from datetime import datetime
 from .models import Appointment, Doctor, Patient
 from .serializers import AppointmentSerializer
 from doctors.models import Schedule
@@ -195,10 +196,21 @@ class AppointmentViewSet(viewsets.ModelViewSet):
                 {'error': 'This appointment cannot be cancelled'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
+        appointment_time = datetime.combine(
+            appointment.schedule.date,
+            appointment.schedule.start_time
+        )
+        appointment_time = timezone.make_aware(appointment_time)
+        if appointment_time <= timezone.now():
+            return Response(
+                {'error': 'Cannot cancel past appointments.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # Salveaza ID-ul schedule-ului inainte de a schimba status-ul
         schedule = appointment.schedule
-        
+
         appointment.status = 'cancelled'
         appointment.save()  # This will handle schedule availability update
         
