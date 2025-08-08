@@ -205,7 +205,7 @@
 <script>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import AppointmentService from "@/services/appointment.service";
+import { useStore } from "vuex";
 import NotificationService from "@/services/notification.service";
 import DoctorCalendar from "@/components/calendar/DoctorCalendar.vue";
 import {
@@ -223,23 +223,21 @@ export default {
 
   setup() {
     const router = useRouter();
+    const store = useStore();
 
-    const loading = ref(true);
     const loadingSchedule = ref(true);
     const loadingNotifications = ref(true);
-    const allAppointments = ref([]);
     const notifications = ref([]);
+
+    // Stare din store
+    const loading = computed(() => store.getters["appointments/isLoading"]);
+    const allAppointments = computed(
+      () => store.getters["appointments/allAppointments"]
+    );
 
     // Obtine programarile
     const loadAppointments = async () => {
-      try {
-        const response = await AppointmentService.getAppointments();
-        allAppointments.value = response.data;
-      } catch (error) {
-        console.error("Failed to load appointments", error);
-      } finally {
-        loading.value = false;
-      }
+      await store.dispatch("appointments/fetchAppointments");
     };
 
     // Filtreaza programarile pentru astazi
@@ -300,18 +298,16 @@ export default {
 
     // Confirma o programare
     const confirmAppointment = async (appointmentId) => {
-      try {
-        await AppointmentService.confirmAppointment(appointmentId);
-        const index = allAppointments.value.findIndex(
-          (a) => a.id === appointmentId
-        );
-        if (index !== -1) {
-          allAppointments.value[index].status = "confirmed";
-        }
+      const result = await store.dispatch(
+        "appointments/confirmAppointment",
+        appointmentId
+      );
+      if (result.success) {
         alert("Appointment confirmed successfully");
-      } catch (error) {
-        console.error("Failed to confirm appointment", error);
-        alert("Failed to confirm appointment. Please try again.");
+      } else {
+        alert(
+          result.error || "Failed to confirm appointment. Please try again."
+        );
       }
     };
 
@@ -321,18 +317,16 @@ export default {
         return;
       }
 
-      try {
-        await AppointmentService.cancelAppointment(appointmentId);
-        const index = allAppointments.value.findIndex(
-          (a) => a.id === appointmentId
-        );
-        if (index !== -1) {
-          allAppointments.value[index].status = "cancelled";
-        }
+      const result = await store.dispatch(
+        "appointments/cancelAppointment",
+        appointmentId
+      );
+      if (result.success) {
         alert("Appointment cancelled successfully");
-      } catch (error) {
-        console.error("Failed to cancel appointment", error);
-        alert("Failed to cancel appointment. Please try again.");
+      } else {
+        alert(
+          result.error || "Failed to cancel appointment. Please try again."
+        );
       }
     };
 
