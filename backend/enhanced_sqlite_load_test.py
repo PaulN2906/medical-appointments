@@ -53,7 +53,7 @@ class SQLiteLoadTester:
             }
             
             async with session.post(
-                f"{self.base_url}/appointments/appointments/",
+                f"{self.base_url}/appointments/",
                 json=booking_data,
                 timeout=aiohttp.ClientTimeout(total=30)
             ) as resp:

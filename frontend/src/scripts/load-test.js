@@ -5,7 +5,7 @@ const fs = require("fs");
 const BASE_URL = process.env.VUE_APP_API_URL || "http://127.0.0.1:8000/api";
 const NUM_USERS = 100;
 const CONCURRENT_REQUESTS = 20;
-const APPOINTMENT_ENDPOINT = "/appointments/appointments/";
+const APPOINTMENT_ENDPOINT = "/appointments/";
 
 // Stocam token-urile utilizatorilor
 const users = [];

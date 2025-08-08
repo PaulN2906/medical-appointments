@@ -3,7 +3,7 @@ import api from "./api";
 export default {
   // Dashboard stats
   getDashboardStats() {
-    return api.get("appointments/appointments/admin_stats/");
+    return api.get("appointments/admin_stats/");
   },
 
   // Users management
@@ -17,7 +17,7 @@ export default {
 
   // Quick appointment booking pentru admin
   createAppointmentAsAdmin(appointmentData) {
-    return api.post("appointments/appointments/", appointmentData);
+    return api.post("appointments/", appointmentData);
   },
 
   // User creation
