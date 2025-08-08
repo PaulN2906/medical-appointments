@@ -161,3 +161,30 @@ class AppointmentBookingTest(TestCase):
         confirm_response = client.post(confirm_url, secure=True)
         self.assertEqual(confirm_response.status_code, 403)
 
+    def test_schedule_must_match_doctor(self):
+        other_user = User.objects.create_user(username='doc3', password='pass')
+        other_doctor = Doctor.objects.create(user=other_user, speciality='gen')
+        other_schedule = Schedule.objects.create(
+            doctor=other_doctor,
+            date=_next_weekday(),
+            start_time=time(14, 0),
+            end_time=time(15, 0),
+            is_available=True,
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=self.patient_user)
+        url = reverse('appointment-list')
+        data = {
+            'patient': self.patient.id,
+            'doctor': self.doctor.id,
+            'schedule': other_schedule.id,
+        }
+
+        response = client.post(url, data, format='json', secure=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            'Selected schedule does not belong to the specified doctor.',
+            str(response.data)
+        )
+

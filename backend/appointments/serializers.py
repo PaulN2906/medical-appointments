@@ -62,10 +62,15 @@ class AppointmentSerializer(serializers.ModelSerializer):
         """
         Validari la nivel de obiect
         """
-        # Verifica daca pacientul nu are deja o programare in acelasi timp
+        # Verifica ca programarea este asociata cu medicul corect
         schedule = data.get('schedule')
+        doctor = data.get('doctor')
         patient = data.get('patient')
-        
+
+        if schedule and doctor and schedule.doctor != doctor:
+            raise serializers.ValidationError("Selected schedule does not belong to the specified doctor.")
+
+        # Verifica daca pacientul nu are deja o programare in acelasi timp
         if schedule and patient:
             # Verifica overlap cu alte programari ale aceluiasi pacient
             existing_appointments = Appointment.objects.filter(
