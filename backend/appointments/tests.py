@@ -7,6 +7,7 @@ from datetime import time, timedelta
 from django.contrib.auth.models import User
 from doctors.models import Doctor, Schedule
 from patients.models import Patient
+from .models import Appointment
 from .serializers import AppointmentSerializer
 
 
@@ -85,7 +86,7 @@ class AppointmentBookingTest(TestCase):
         self.schedule.refresh_from_db()
         self.assertFalse(self.schedule.is_available)
 
-    def test_cannot_book_for_another_patient(self):
+    def test_patient_cannot_create_appointment_for_another_patient(self):
         other_user = User.objects.create_user(username='other', password='pass')
         Patient.objects.create(user=other_user)
 
@@ -100,4 +101,45 @@ class AppointmentBookingTest(TestCase):
 
         response = client.post(url, data, format='json', secure=True)
         self.assertEqual(response.status_code, 403)
+
+    def test_double_booking_prevention(self):
+        client = APIClient()
+        client.force_authenticate(user=self.patient_user)
+        url = reverse('appointment-list')
+        data = {
+            'patient': self.patient.id,
+            'doctor': self.doctor.id,
+            'schedule': self.schedule.id,
+        }
+
+        first = client.post(url, data, format='json', secure=True)
+        self.assertEqual(first.status_code, 201)
+
+        second = client.post(url, data, format='json', secure=True)
+        self.assertEqual(second.status_code, 400)
+        self.assertEqual(Appointment.objects.count(), 1)
+
+    def test_cancelling_updates_schedule_availability(self):
+        client = APIClient()
+        client.force_authenticate(user=self.patient_user)
+        url = reverse('appointment-list')
+        data = {
+            'patient': self.patient.id,
+            'doctor': self.doctor.id,
+            'schedule': self.schedule.id,
+        }
+
+        response = client.post(url, data, format='json', secure=True)
+        self.assertEqual(response.status_code, 201)
+        appointment_id = response.data['id']
+
+        self.schedule.refresh_from_db()
+        self.assertFalse(self.schedule.is_available)
+
+        cancel_url = reverse('appointment-cancel', kwargs={'pk': appointment_id})
+        cancel_response = client.post(cancel_url, secure=True)
+        self.assertEqual(cancel_response.status_code, 200)
+
+        self.schedule.refresh_from_db()
+        self.assertTrue(self.schedule.is_available)
 
