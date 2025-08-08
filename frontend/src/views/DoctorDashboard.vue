@@ -125,27 +125,18 @@
         <div class="card">
           <div class="card-header">Weekly Schedule</div>
           <div class="card-body">
-            <div v-if="loadingSchedule" class="text-center p-4">
-              <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
-            </div>
-
-            <div v-else>
-              <!-- Componenta calendar în mod compact -->
-              <DoctorCalendar
-                :editable="false"
-                :view="'timeGridWeek'"
-                :height="500"
-              />
-              <div class="text-center mt-3">
-                <router-link
-                  to="/doctor-schedule"
-                  class="btn btn-outline-primary"
-                >
-                  Full Schedule View
-                </router-link>
-              </div>
+            <DoctorCalendar
+              :editable="false"
+              :view="'timeGridWeek'"
+              :height="500"
+            />
+            <div class="text-center mt-3">
+              <router-link
+                to="/doctor-schedule"
+                class="btn btn-outline-primary"
+              >
+                Full Schedule View
+              </router-link>
             </div>
           </div>
         </div>
@@ -225,7 +216,6 @@ export default {
     const router = useRouter();
     const store = useStore();
 
-    const loadingSchedule = ref(true);
     const loadingNotifications = ref(true);
     const notifications = ref([]);
 
@@ -338,12 +328,10 @@ export default {
     onMounted(() => {
       loadAppointments();
       loadNotifications();
-      loadingSchedule.value = false; // Se va seta cand calendarul se incarca complet
     });
 
     return {
       loading,
-      loadingSchedule,
       loadingNotifications,
       todayAppointments,
       notifications,
