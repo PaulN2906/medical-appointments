@@ -275,7 +275,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             'appointments_today': Appointment.objects.filter(
                 schedule__date=today,
             ).count(),
-            'appoinments_by_status': dict(
+            'appointments_by_status': dict(
                 Appointment.objects.values('status').annotate(
                     count=Count('id')
                 ).values_list('status', 'count')
