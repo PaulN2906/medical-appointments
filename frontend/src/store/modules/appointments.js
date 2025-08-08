@@ -30,6 +30,12 @@ export default {
         state.appointments.splice(index, 1, updatedAppointment);
       }
     },
+    setAppointmentStatus(state, { id, status }) {
+      const appointment = state.appointments.find((a) => a.id === id);
+      if (appointment) {
+        appointment.status = status;
+      }
+    },
   },
 
   actions: {
@@ -81,11 +87,11 @@ export default {
       commit("setError", null);
 
       try {
-        const response = await AppointmentService.confirmAppointment(
-          appointmentId
-        );
-        const updatedAppointment = { ...response.data, status: "confirmed" };
-        commit("updateAppointment", updatedAppointment);
+        await AppointmentService.confirmAppointment(appointmentId);
+        commit("setAppointmentStatus", {
+          id: appointmentId,
+          status: "confirmed",
+        });
         return { success: true };
       } catch (error) {
         commit(
@@ -107,11 +113,11 @@ export default {
       commit("setError", null);
 
       try {
-        const response = await AppointmentService.cancelAppointment(
-          appointmentId
-        );
-        const updatedAppointment = { ...response.data, status: "cancelled" };
-        commit("updateAppointment", updatedAppointment);
+        await AppointmentService.cancelAppointment(appointmentId);
+        commit("setAppointmentStatus", {
+          id: appointmentId,
+          status: "cancelled",
+        });
         return { success: true };
       } catch (error) {
         commit(
