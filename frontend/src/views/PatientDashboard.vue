@@ -212,6 +212,16 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AppointmentService from "@/services/appointment.service";
 import NotificationService from "@/services/notification.service";
+import {
+  getDoctorName,
+  formatDate,
+  formatTime,
+  formatDateTime,
+  getStatusClass,
+  isToday,
+  getDaysUntil,
+  isUpcoming,
+} from "@/utils/formatters";
 
 export default {
   name: "PatientDashboard",
@@ -228,48 +238,6 @@ export default {
     const recentNotifications = computed(() => {
       return notifications.value.slice(0, 5);
     });
-
-    // Helper function to check if an appointment is upcoming
-    const isUpcomingAppointment = (appointment) => {
-      if (!appointment.schedule_details?.date) {
-        return false;
-      }
-
-      const appointmentDate = new Date(
-        appointment.schedule_details.date + "T00:00:00"
-      );
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // Appointment is upcoming if it's today or in the future
-      return appointmentDate >= today;
-    };
-
-    // Helper function to check if appointment is today
-    const isToday = (dateString) => {
-      const appointmentDate = new Date(dateString + "T00:00:00");
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      appointmentDate.setHours(0, 0, 0, 0);
-
-      return appointmentDate.getTime() === today.getTime();
-    };
-
-    // Helper function to get days until appointment
-    const getDaysUntil = (dateString) => {
-      const appointmentDate = new Date(dateString + "T00:00:00");
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      appointmentDate.setHours(0, 0, 0, 0);
-
-      const diffTime = appointmentDate - today;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 0) return "Today";
-      if (diffDays === 1) return "Tomorrow";
-      if (diffDays > 0) return `In ${diffDays} days`;
-      return `${Math.abs(diffDays)} days ago`;
-    };
 
     // Get current date info for display
     const getCurrentDateInfo = () => {
@@ -294,9 +262,9 @@ export default {
           const isActiveStatus = ["pending", "confirmed"].includes(
             appointment.status
           );
-          const isUpcoming = isUpcomingAppointment(appointment);
+          const isUpcomingAppt = isUpcoming(appointment.schedule_details?.date);
 
-          return isActiveStatus && isUpcoming;
+          return isActiveStatus && isUpcomingAppt;
         });
 
         // Sort by date and time
@@ -373,58 +341,6 @@ export default {
     // Navigate to appointment details
     const viewAppointment = (appointmentId) => {
       router.push(`/appointments/${appointmentId}`);
-    };
-
-    // Helper to get doctor name
-    const getDoctorName = (appointment) => {
-      if (appointment.doctor_details && appointment.doctor_details.user) {
-        const user = appointment.doctor_details.user;
-        return `Dr. ${user.last_name} ${user.first_name}`;
-      }
-      return "Unknown Doctor";
-    };
-
-    // Helper to format date
-    const formatDate = (dateString) => {
-      const options = { year: "numeric", month: "long", day: "numeric" };
-      return new Date(dateString).toLocaleDateString(undefined, options);
-    };
-
-    // Helper to format time
-    const formatTime = (timeString) => {
-      const timeParts = timeString.split(":");
-      const date = new Date();
-      date.setHours(parseInt(timeParts[0], 10));
-      date.setMinutes(parseInt(timeParts[1], 10));
-
-      return date.toLocaleTimeString(undefined, {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    };
-
-    // Helper to format date and time
-    const formatDateTime = (dateTimeString) => {
-      const options = {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      };
-      return new Date(dateTimeString).toLocaleString(undefined, options);
-    };
-
-    // Helper to get status class
-    const getStatusClass = (status) => {
-      const statusClasses = {
-        pending: "badge bg-warning",
-        confirmed: "badge bg-success",
-        cancelled: "badge bg-danger",
-        completed: "badge bg-info",
-      };
-
-      return statusClasses[status] || "badge bg-secondary";
     };
 
     onMounted(() => {
