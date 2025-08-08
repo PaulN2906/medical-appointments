@@ -49,6 +49,10 @@ class Appointment(models.Model):
         """
         SQLite-compatible atomic save with retry logic for race conditions
         """
+        # Run full_clean to trigger model validation before saving
+        # This ensures the clean() method runs and prevents double booking
+        self.full_clean()
+
         # Update schedule availability based on appointment status
         if self.status in ['pending', 'confirmed']:
             # Use atomic transaction to prevent race conditions
@@ -103,22 +107,25 @@ class Appointment(models.Model):
                     schedule = Schedule.objects.get(id=kwargs['schedule'].id)
                     if not schedule.is_available:
                         raise ValidationError("Schedule slot is no longer available")
-                    
+
                     # Create appointment
                     appointment = cls.objects.create(**kwargs)
-                    
+
                     # Success - return the appointment
                     return appointment
-                    
-            except (IntegrityError, ValidationError) as e:
+
+            except ValidationError as e:
+                # Validation errors from full_clean are not retriable
+                raise e
+            except IntegrityError as e:
                 if attempt == max_retries - 1:
                     # Last attempt failed
                     raise ValidationError(f"Unable to book appointment: {str(e)}")
-                
+
                 # Wait with exponential backoff before retry
                 delay = base_delay * (2 ** attempt) + random.uniform(0, 0.1)
                 time.sleep(delay)
-                
+
                 # Log the retry attempt
                 import logging
                 logger = logging.getLogger(__name__)
