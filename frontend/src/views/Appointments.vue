@@ -261,6 +261,11 @@ export default {
               isUpcoming(apt.schedule_details?.date)
           );
           break;
+        case "pending":
+          filtered = appointments.value.filter(
+            (apt) => apt.status === "pending"
+          );
+          break;
         case "past":
           filtered = appointments.value.filter(
             (apt) =>
@@ -278,7 +283,7 @@ export default {
 
       // Sort appointments
       return filtered.sort((a, b) => {
-        if (activeFilter.value === "upcoming") {
+        if (["upcoming", "pending"].includes(activeFilter.value)) {
           // For upcoming: sort by date, then time (earliest first)
           const dateComparison = a.schedule_details.date.localeCompare(
             b.schedule_details.date
@@ -313,6 +318,7 @@ export default {
     const getFilterTitle = () => {
       const titles = {
         upcoming: "Upcoming Appointments",
+        pending: "Pending Appointments",
         past: "Past Appointments",
         cancelled: "Cancelled Appointments",
         all: "All Appointments",
@@ -375,7 +381,11 @@ export default {
     onMounted(() => {
       // Check for filter in query params
       const queryFilter = route.query.filter;
-      if (["upcoming", "past", "cancelled", "all"].includes(queryFilter)) {
+      if (
+        ["upcoming", "pending", "past", "cancelled", "all"].includes(
+          queryFilter
+        )
+      ) {
         activeFilter.value = queryFilter;
       }
 
