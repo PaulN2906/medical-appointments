@@ -191,13 +191,17 @@ export default {
         return;
       }
 
-      try {
-        await AppointmentService.confirmAppointment(appointment.value.id);
-        appointment.value.status = "confirmed";
+      const result = await store.dispatch(
+        "appointments/confirmAppointment",
+        appointment.value.id
+      );
+      if (result.success) {
+        await loadAppointment();
         alert("Appointment confirmed successfully!");
-      } catch (error) {
-        console.error("Failed to confirm appointment", error);
-        alert("Failed to confirm appointment. Please try again.");
+      } else {
+        alert(
+          result.error || "Failed to confirm appointment. Please try again."
+        );
       }
     };
 
@@ -207,13 +211,17 @@ export default {
         return;
       }
 
-      try {
-        await AppointmentService.cancelAppointment(appointment.value.id);
-        appointment.value.status = "cancelled";
+      const result = await store.dispatch(
+        "appointments/cancelAppointment",
+        appointment.value.id
+      );
+      if (result.success) {
+        await loadAppointment();
         alert("Appointment cancelled successfully!");
-      } catch (error) {
-        console.error("Failed to cancel appointment", error);
-        alert("Failed to cancel appointment. Please try again.");
+      } else {
+        alert(
+          result.error || "Failed to cancel appointment. Please try again."
+        );
       }
     };
 

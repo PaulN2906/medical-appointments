@@ -210,7 +210,7 @@
 <script>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import AppointmentService from "@/services/appointment.service";
+import { useStore } from "vuex";
 import NotificationService from "@/services/notification.service";
 import {
   getDoctorName,
@@ -228,11 +228,34 @@ export default {
 
   setup() {
     const router = useRouter();
+    const store = useStore();
 
-    const loading = ref(true);
     const loadingNotifications = ref(true);
-    const upcomingAppointments = ref([]);
     const notifications = ref([]);
+
+    // Stare din store
+    const loading = computed(() => store.getters["appointments/isLoading"]);
+    const upcomingAppointments = computed(() => {
+      return store.getters["appointments/allAppointments"]
+        .filter((appointment) => {
+          const isActiveStatus = ["pending", "confirmed"].includes(
+            appointment.status
+          );
+          const isUpcomingAppt = isUpcoming(appointment.schedule_details?.date);
+          return isActiveStatus && isUpcomingAppt;
+        })
+        .sort((a, b) => {
+          const dateComparison = a.schedule_details.date.localeCompare(
+            b.schedule_details.date
+          );
+          if (dateComparison !== 0) {
+            return dateComparison;
+          }
+          return a.schedule_details.start_time.localeCompare(
+            b.schedule_details.start_time
+          );
+        });
+    });
 
     // Show only the 5 most recent notifications
     const recentNotifications = computed(() => {
@@ -252,39 +275,7 @@ export default {
 
     // Load upcoming appointments
     const loadAppointments = async () => {
-      try {
-        const response = await AppointmentService.getAppointments();
-
-        // Filter appointments that are:
-        // 1. Not cancelled or completed
-        // 2. Scheduled for today or future dates
-        upcomingAppointments.value = response.data.filter((appointment) => {
-          const isActiveStatus = ["pending", "confirmed"].includes(
-            appointment.status
-          );
-          const isUpcomingAppt = isUpcoming(appointment.schedule_details?.date);
-
-          return isActiveStatus && isUpcomingAppt;
-        });
-
-        // Sort by date and time
-        upcomingAppointments.value.sort((a, b) => {
-          const dateComparison = a.schedule_details.date.localeCompare(
-            b.schedule_details.date
-          );
-          if (dateComparison !== 0) {
-            return dateComparison;
-          }
-          // If same date, sort by start time
-          return a.schedule_details.start_time.localeCompare(
-            b.schedule_details.start_time
-          );
-        });
-      } catch (error) {
-        console.error("Failed to load appointments", error);
-      } finally {
-        loading.value = false;
-      }
+      await store.dispatch("appointments/fetchAppointments");
     };
 
     // Load notifications
@@ -321,20 +312,16 @@ export default {
         return;
       }
 
-      try {
-        await AppointmentService.cancelAppointment(appointmentId);
-        // Update appointment state in UI
-        const appointmentIndex = upcomingAppointments.value.findIndex(
-          (a) => a.id === appointmentId
-        );
-        if (appointmentIndex !== -1) {
-          // Remove from upcoming appointments since it's now cancelled
-          upcomingAppointments.value.splice(appointmentIndex, 1);
-        }
+      const result = await store.dispatch(
+        "appointments/cancelAppointment",
+        appointmentId
+      );
+      if (result.success) {
         alert("Appointment cancelled successfully");
-      } catch (error) {
-        console.error("Failed to cancel appointment", error);
-        alert("Failed to cancel appointment. Please try again.");
+      } else {
+        alert(
+          result.error || "Failed to cancel appointment. Please try again."
+        );
       }
     };
 
