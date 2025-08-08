@@ -46,8 +46,8 @@ class AsyncTester:
         
         try:
             async with session.post(
-                f"{BASE_URL}/appointments/appointments/", 
-                json=appointment_data, 
+                f"{BASE_URL}/appointments/",
+                json=appointment_data,
                 headers=headers,
                 timeout=aiohttp.ClientTimeout(total=10)
             ) as resp:
