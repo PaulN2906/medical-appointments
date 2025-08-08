@@ -195,7 +195,6 @@
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
-import AppointmentService from "@/services/appointment.service";
 import {
   isToday,
   isPast,
@@ -216,8 +215,10 @@ export default {
     const router = useRouter();
     const store = useStore();
 
-    const loading = ref(true);
-    const appointments = ref([]);
+    const loading = computed(() => store.getters["appointments/isLoading"]);
+    const appointments = computed(
+      () => store.getters["appointments/allAppointments"]
+    );
     const activeFilter = ref("upcoming"); // Default to upcoming
 
     // Get current user and role
@@ -335,14 +336,7 @@ export default {
 
     // Load appointments
     const loadAppointments = async () => {
-      try {
-        const response = await AppointmentService.getAppointments();
-        appointments.value = response.data;
-      } catch (error) {
-        console.error("Failed to load appointments", error);
-      } finally {
-        loading.value = false;
-      }
+      await store.dispatch("appointments/fetchAppointments");
     };
 
     // Navigate to appointment details
@@ -352,13 +346,13 @@ export default {
 
     // Confirm appointment (for doctors)
     const confirmAppointment = async (id) => {
-      try {
-        await AppointmentService.confirmAppointment(id);
-        // Reload appointments
-        await loadAppointments();
-      } catch (error) {
+      const { success, error } = await store.dispatch(
+        "appointments/confirmAppointment",
+        id
+      );
+      if (!success) {
         console.error("Failed to confirm appointment", error);
-        alert("Failed to confirm appointment");
+        alert(error || "Failed to confirm appointment");
       }
     };
 
@@ -368,13 +362,13 @@ export default {
         return;
       }
 
-      try {
-        await AppointmentService.cancelAppointment(id);
-        // Reload appointments
-        await loadAppointments();
-      } catch (error) {
+      const { success, error } = await store.dispatch(
+        "appointments/cancelAppointment",
+        id
+      );
+      if (!success) {
         console.error("Failed to cancel appointment", error);
-        alert("Failed to cancel appointment");
+        alert(error || "Failed to cancel appointment");
       }
     };
 
