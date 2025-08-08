@@ -77,16 +77,23 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         
         # Log the booking attempt for thesis demonstration
         logger.info(f"Appointment booking attempt for schedule {schedule_id} by user {request.user.id}")
-        
+
         try:
             # Use the retry mechanism for SQLite transaction control
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            
+
+            user = request.user
+            if not (
+                hasattr(user, 'profile') and user.profile.role == 'admin' or
+                (hasattr(user, 'patient') and serializer.validated_data['patient'] == user.patient)
+            ):
+                raise PermissionDenied("You can only book appointments for yourself.")
+
             # Extract data for appointment creation
             appointment_data = {
                 'patient': serializer.validated_data['patient'],
-                'doctor': serializer.validated_data['doctor'], 
+                'doctor': serializer.validated_data['doctor'],
                 'schedule': serializer.validated_data['schedule'],
                 'notes': serializer.validated_data.get('notes', ''),
                 'status': 'pending'
@@ -113,7 +120,9 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             # Return serialized appointment
             response_serializer = self.get_serializer(appointment)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-            
+
+        except PermissionDenied:
+            raise
         except ValidationError as e:
             logger.warning(f"Appointment booking failed for schedule {schedule_id}: {str(e)}")
             return Response(
