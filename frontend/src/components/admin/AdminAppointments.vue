@@ -154,7 +154,13 @@
                 <td>{{ getDoctorName(appointment) }}</td>
                 <td>
                   <div>
-                    {{ formatDate(appointment.schedule_details?.date) }}
+                    {{
+                      formatDate(appointment.schedule_details?.date, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })
+                    }}
                   </div>
                   <small class="text-muted">
                     {{ formatTime(appointment.schedule_details?.start_time) }} -
@@ -167,7 +173,17 @@
                   </span>
                 </td>
                 <td>
-                  <small>{{ formatDateTime(appointment.created_at) }}</small>
+                  <small>
+                    {{
+                      formatDateTime(appointment.created_at, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    }}
+                  </small>
                 </td>
                 <td>
                   <div class="btn-group btn-group-sm">
@@ -227,7 +243,13 @@
                   <strong>Doctor:</strong> {{ getDoctorName(appointment)
                   }}<br />
                   <strong>Date:</strong>
-                  {{ formatDate(appointment.schedule_details?.date) }}<br />
+                  {{
+                    formatDate(appointment.schedule_details?.date, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })
+                  }}<br />
                   <strong>Time:</strong>
                   {{ formatTime(appointment.schedule_details?.start_time) }}
                 </p>
@@ -344,6 +366,14 @@ import { useRouter } from "vue-router";
 import AppointmentService from "@/services/appointment.service";
 import AdminCreateAppointment from "./AdminCreateAppointment.vue";
 import AdminScheduleManager from "./AdminScheduleManager.vue";
+import {
+  getDoctorName,
+  getPatientName,
+  formatDate,
+  formatTime,
+  formatDateTime,
+  getStatusClass,
+} from "@/utils/formatters";
 
 export default {
   name: "AdminAppointments",
@@ -472,63 +502,6 @@ export default {
     const handleAppointmentCreated = () => {
       showCreateModal.value = false;
       loadAppointments(); // Refresh data
-    };
-
-    // Helper functions
-    const getPatientName = (appointment) => {
-      if (appointment.patient_details?.user) {
-        const user = appointment.patient_details.user;
-        return `${user.first_name} ${user.last_name}`;
-      }
-      return "Unknown Patient";
-    };
-
-    const getDoctorName = (appointment) => {
-      if (appointment.doctor_details?.user) {
-        const user = appointment.doctor_details.user;
-        return `Dr. ${user.last_name} ${user.first_name}`;
-      }
-      return "Unknown Doctor";
-    };
-
-    const formatDate = (dateString) => {
-      if (!dateString) return "";
-      const options = { year: "numeric", month: "short", day: "numeric" };
-      return new Date(dateString).toLocaleDateString(undefined, options);
-    };
-
-    const formatTime = (timeString) => {
-      if (!timeString) return "";
-      const timeParts = timeString.split(":");
-      const date = new Date();
-      date.setHours(parseInt(timeParts[0], 10));
-      date.setMinutes(parseInt(timeParts[1], 10));
-      return date.toLocaleTimeString(undefined, {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    };
-
-    const formatDateTime = (dateTimeString) => {
-      if (!dateTimeString) return "";
-      const options = {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      };
-      return new Date(dateTimeString).toLocaleString(undefined, options);
-    };
-
-    const getStatusClass = (status) => {
-      const statusClasses = {
-        pending: "badge bg-warning",
-        confirmed: "badge bg-success",
-        cancelled: "badge bg-danger",
-        completed: "badge bg-info",
-      };
-      return statusClasses[status] || "badge bg-secondary";
     };
 
     onMounted(() => {

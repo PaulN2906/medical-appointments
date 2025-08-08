@@ -196,6 +196,17 @@ import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import AppointmentService from "@/services/appointment.service";
+import {
+  isToday,
+  isPast,
+  isUpcoming,
+  getDaysUntil,
+  getDoctorName,
+  getPatientName,
+  formatDate,
+  formatTime,
+  getStatusClass,
+} from "@/utils/formatters";
 
 export default {
   name: "Appointments",
@@ -213,50 +224,6 @@ export default {
     const currentUser = computed(() => store.getters["auth/currentUser"]);
     const isDoctor = computed(() => currentUser.value?.role === "doctor");
     const isPatient = computed(() => currentUser.value?.role === "patient");
-
-    // Helper functions for date comparison
-    const isToday = (dateString) => {
-      const appointmentDate = new Date(dateString + "T00:00:00");
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      appointmentDate.setHours(0, 0, 0, 0);
-
-      return appointmentDate.getTime() === today.getTime();
-    };
-
-    const isPast = (dateString) => {
-      const appointmentDate = new Date(dateString + "T00:00:00");
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      appointmentDate.setHours(0, 0, 0, 0);
-
-      return appointmentDate < today;
-    };
-
-    const isUpcoming = (dateString) => {
-      const appointmentDate = new Date(dateString + "T00:00:00");
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      appointmentDate.setHours(0, 0, 0, 0);
-
-      return appointmentDate >= today;
-    };
-
-    // Helper function to get days until appointment
-    const getDaysUntil = (dateString) => {
-      const appointmentDate = new Date(dateString + "T00:00:00");
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      appointmentDate.setHours(0, 0, 0, 0);
-
-      const diffTime = appointmentDate - today;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 0) return "Today";
-      if (diffDays === 1) return "Tomorrow";
-      if (diffDays > 0) return `In ${diffDays} days`;
-      return `${Math.abs(diffDays)} days ago`;
-    };
 
     // Computed properties for counts
     const upcomingCount = computed(() => {
@@ -409,49 +376,6 @@ export default {
         console.error("Failed to cancel appointment", error);
         alert("Failed to cancel appointment");
       }
-    };
-
-    // Format helpers
-    const getDoctorName = (appointment) => {
-      if (appointment.doctor_details?.user) {
-        const user = appointment.doctor_details.user;
-        return `Dr. ${user.first_name} ${user.last_name}`;
-      }
-      return "Unknown Doctor";
-    };
-
-    const getPatientName = (appointment) => {
-      if (appointment.patient_details?.user) {
-        const user = appointment.patient_details.user;
-        return `${user.first_name} ${user.last_name}`;
-      }
-      return "Unknown Patient";
-    };
-
-    const formatDate = (dateString) => {
-      const options = { year: "numeric", month: "long", day: "numeric" };
-      return new Date(dateString).toLocaleDateString(undefined, options);
-    };
-
-    const formatTime = (timeString) => {
-      const timeParts = timeString.split(":");
-      const date = new Date();
-      date.setHours(parseInt(timeParts[0], 10));
-      date.setMinutes(parseInt(timeParts[1], 10));
-      return date.toLocaleTimeString(undefined, {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    };
-
-    const getStatusClass = (status) => {
-      const statusClasses = {
-        pending: "badge bg-warning",
-        confirmed: "badge bg-success",
-        cancelled: "badge bg-danger",
-        completed: "badge bg-info",
-      };
-      return statusClasses[status] || "badge bg-secondary";
     };
 
     onMounted(() => {
