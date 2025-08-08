@@ -143,3 +143,21 @@ class AppointmentBookingTest(TestCase):
         self.schedule.refresh_from_db()
         self.assertTrue(self.schedule.is_available)
 
+    def test_patient_cannot_confirm_appointment(self):
+        client = APIClient()
+        client.force_authenticate(user=self.patient_user)
+        url = reverse('appointment-list')
+        data = {
+            'patient': self.patient.id,
+            'doctor': self.doctor.id,
+            'schedule': self.schedule.id,
+        }
+
+        response = client.post(url, data, format='json', secure=True)
+        self.assertEqual(response.status_code, 201)
+        appointment_id = response.data['id']
+
+        confirm_url = reverse('appointment-confirm', kwargs={'pk': appointment_id})
+        confirm_response = client.post(confirm_url, secure=True)
+        self.assertEqual(confirm_response.status_code, 403)
+

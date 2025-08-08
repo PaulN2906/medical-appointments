@@ -147,11 +147,15 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def confirm(self, request, pk=None):
         appointment = self.get_object()
-        
-        # Admin poate confirma orice appointment
-        if hasattr(request.user, 'profile') and request.user.profile.role == 'admin':
-            pass # Admin are voie
-        elif appointment.status != 'pending':
+
+        user = request.user
+        if not (
+            hasattr(user, 'profile') and user.profile.role == 'admin' or
+            (hasattr(user, 'doctor') and user.doctor == appointment.doctor)
+        ):
+            raise PermissionDenied("Only the assigned doctor or admin can confirm this appointment.")
+
+        if appointment.status != 'pending':
             return Response(
                 {'error': 'Only pending appointments can be confirmed'},
                 status=status.HTTP_400_BAD_REQUEST
