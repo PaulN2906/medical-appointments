@@ -44,30 +44,43 @@
     </div>
 
     <!-- Appointment Details Modal -->
-    <div class="modal fade" id="appointmentModal" tabindex="-1" aria-hidden="true">
+    <div
+      class="modal fade"
+      id="appointmentModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Appointment Details</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
           </div>
           <div class="modal-body" v-if="selectedAppointment">
             <div class="mb-3">
               <strong>Doctor:</strong> {{ getDoctorName(selectedAppointment) }}
             </div>
             <div class="mb-3">
-              <strong>Speciality:</strong> {{ selectedAppointment.doctor_details?.speciality }}
+              <strong>Speciality:</strong>
+              {{ selectedAppointment.doctor_details?.speciality }}
             </div>
             <div class="mb-3">
-              <strong>Date:</strong> {{ formatDate(selectedAppointment.schedule_details?.date) }}
+              <strong>Date:</strong>
+              {{ formatDate(selectedAppointment.schedule_details?.date) }}
             </div>
             <div class="mb-3">
-              <strong>Time:</strong> 
-              {{ formatTime(selectedAppointment.schedule_details?.start_time) }} - 
+              <strong>Time:</strong>
+              {{ formatTime(selectedAppointment.schedule_details?.start_time) }}
+              -
               {{ formatTime(selectedAppointment.schedule_details?.end_time) }}
             </div>
             <div class="mb-3">
-              <strong>Status:</strong> 
+              <strong>Status:</strong>
               <span :class="getStatusClass(selectedAppointment.status)">
                 {{ selectedAppointment.status }}
               </span>
@@ -78,19 +91,25 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button 
-              type="button" 
-              class="btn btn-primary" 
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
               @click="viewFullDetails"
               data-bs-dismiss="modal"
             >
               View Full Details
             </button>
-            <button 
-              v-if="canCancelAppointment" 
-              type="button" 
-              class="btn btn-danger" 
+            <button
+              v-if="canCancelAppointment"
+              type="button"
+              class="btn btn-danger"
               @click="cancelAppointment"
               data-bs-dismiss="modal"
             >
@@ -145,8 +164,8 @@ export default {
     const selectedAppointment = ref(null);
 
     // Get appointments from store
-    const allAppointments = computed(() => 
-      store.getters["appointments/allAppointments"]
+    const allAppointments = computed(
+      () => store.getters["appointments/allAppointments"]
     );
 
     // Filter appointments based on status filter
@@ -186,7 +205,9 @@ export default {
     const events = computed(() => {
       return filteredAppointments.value.map((appointment) => ({
         id: appointment.id,
-        title: `${formatTime(appointment.schedule_details.start_time)} - Dr. ${appointment.doctor_details.user.last_name}`,
+        title: `${formatTime(appointment.schedule_details.start_time)} - Dr. ${
+          appointment.doctor_details.user.last_name
+        }`,
         start: `${appointment.schedule_details.date}T${appointment.schedule_details.start_time}`,
         end: `${appointment.schedule_details.date}T${appointment.schedule_details.end_time}`,
         backgroundColor: getStatusColor(appointment.status),
@@ -219,9 +240,12 @@ export default {
       eventDisplay: "block",
       dayMaxEvents: 3,
       moreLinkClick: "popover",
-      eventDidMount: function(info) {
+      eventDidMount: function (info) {
         // Add tooltip
-        info.el.setAttribute("title", getTooltipText(info.event.extendedProps.appointmentData));
+        info.el.setAttribute(
+          "title",
+          getTooltipText(info.event.extendedProps.appointmentData)
+        );
       },
     }));
 
@@ -243,23 +267,31 @@ export default {
 
     // Generate tooltip text
     const getTooltipText = (appointment) => {
-      return `${getDoctorName(appointment)} - ${appointment.doctor_details.speciality}\n${formatTime(appointment.schedule_details.start_time)} - ${formatTime(appointment.schedule_details.end_time)}\nStatus: ${appointment.status}`;
+      return `${getDoctorName(appointment)} - ${
+        appointment.doctor_details.speciality
+      }\n${formatTime(appointment.schedule_details.start_time)} - ${formatTime(
+        appointment.schedule_details.end_time
+      )}\nStatus: ${appointment.status}`;
     };
 
     // Handle event click
     const handleEventClick = (info) => {
       selectedAppointment.value = info.event.extendedProps.appointmentData;
-      const modal = new bootstrap.Modal(document.getElementById("appointmentModal"));
+      const modal = new bootstrap.Modal(
+        document.getElementById("appointmentModal")
+      );
       modal.show();
     };
 
     // Check if appointment can be cancelled
     const canCancelAppointment = computed(() => {
       if (!selectedAppointment.value) return false;
-      
-      const canCancel = ["pending", "confirmed"].includes(selectedAppointment.value.status);
+
+      const canCancel = ["pending", "confirmed"].includes(
+        selectedAppointment.value.status
+      );
       const notPast = !isPast(selectedAppointment.value.schedule_details?.date);
-      
+
       return canCancel && notPast;
     });
 
@@ -283,13 +315,15 @@ export default {
           "appointments/cancelAppointment",
           selectedAppointment.value.id
         );
-        
+
         if (result.success) {
           // Refresh calendar
           calendarRef.value?.getApi().refetchEvents();
           alert("Appointment cancelled successfully!");
         } else {
-          alert(result.error || "Failed to cancel appointment. Please try again.");
+          alert(
+            result.error || "Failed to cancel appointment. Please try again."
+          );
         }
       } catch (error) {
         console.error("Failed to cancel appointment", error);

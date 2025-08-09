@@ -94,7 +94,9 @@
     <div class="row">
       <div class="col-md-12">
         <div class="card">
-          <div class="card-header d-flex justify-content-between align-items-center">
+          <div
+            class="card-header d-flex justify-content-between align-items-center"
+          >
             <div>
               <i class="bi bi-calendar-event me-2"></i>
               <span>My Appointments</span>
@@ -105,14 +107,20 @@
             <div class="btn-group btn-group-sm">
               <button
                 class="btn"
-                :class="viewMode === 'calendar' ? 'btn-primary' : 'btn-outline-primary'"
+                :class="
+                  viewMode === 'calendar'
+                    ? 'btn-primary'
+                    : 'btn-outline-primary'
+                "
                 @click="viewMode = 'calendar'"
               >
                 <i class="bi bi-calendar-event"></i> Calendar
               </button>
               <button
                 class="btn"
-                :class="viewMode === 'list' ? 'btn-primary' : 'btn-outline-primary'"
+                :class="
+                  viewMode === 'list' ? 'btn-primary' : 'btn-outline-primary'
+                "
                 @click="viewMode = 'list'"
               >
                 <i class="bi bi-list-ul"></i> List
@@ -128,12 +136,17 @@
 
             <!-- List View -->
             <div v-else>
-              <div v-if="filteredAppointments.length === 0" class="text-center p-5">
+              <div
+                v-if="filteredAppointments.length === 0"
+                class="text-center p-5"
+              >
                 <i class="bi bi-calendar-x fs-1 text-muted"></i>
-                <p class="mt-3 mb-4">No {{ statusFilter }} appointments found.</p>
-                <router-link 
-                  v-if="statusFilter === 'upcoming'" 
-                  to="/book-appointment" 
+                <p class="mt-3 mb-4">
+                  No {{ statusFilter }} appointments found.
+                </p>
+                <router-link
+                  v-if="statusFilter === 'upcoming'"
+                  to="/book-appointment"
                   class="btn btn-primary"
                 >
                   Book Your First Appointment
@@ -152,8 +165,8 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr 
-                      v-for="appointment in filteredAppointments" 
+                    <tr
+                      v-for="appointment in filteredAppointments"
                       :key="appointment.id"
                       :class="getRowClass(appointment)"
                     >
@@ -161,7 +174,9 @@
                         <div>
                           <strong>{{ getDoctorName(appointment) }}</strong>
                           <br />
-                          <small class="text-muted">{{ appointment.doctor_details?.speciality }}</small>
+                          <small class="text-muted">{{
+                            appointment.doctor_details?.speciality
+                          }}</small>
                         </div>
                       </td>
                       <td>
@@ -174,7 +189,10 @@
                         </span>
                       </td>
                       <td>
-                        {{ formatTime(appointment.schedule_details?.start_time) }} -
+                        {{
+                          formatTime(appointment.schedule_details?.start_time)
+                        }}
+                        -
                         {{ formatTime(appointment.schedule_details?.end_time) }}
                       </td>
                       <td>
@@ -276,13 +294,13 @@ export default {
   setup() {
     const store = useStore();
     const router = useRouter();
-    
+
     const statusFilter = ref("upcoming"); // Default filter
     const viewMode = ref("calendar"); // calendar or list
 
     // Get appointments from store
-    const allAppointments = computed(() => 
-      store.getters["appointments/allAppointments"]
+    const allAppointments = computed(
+      () => store.getters["appointments/allAppointments"]
     );
 
     // Filtered appointments based on current filter
@@ -320,9 +338,13 @@ export default {
 
       // Sort by date and time
       return filtered.sort((a, b) => {
-        const dateA = new Date(`${a.schedule_details.date}T${a.schedule_details.start_time}`);
-        const dateB = new Date(`${b.schedule_details.date}T${b.schedule_details.start_time}`);
-        
+        const dateA = new Date(
+          `${a.schedule_details.date}T${a.schedule_details.start_time}`
+        );
+        const dateB = new Date(
+          `${b.schedule_details.date}T${b.schedule_details.start_time}`
+        );
+
         if (statusFilter.value === "upcoming") {
           return dateA - dateB; // Ascending for upcoming
         } else {
@@ -333,32 +355,37 @@ export default {
 
     // Counts for each status
     const allCount = computed(() => allAppointments.value.length);
-    
-    const upcomingCount = computed(() =>
-      allAppointments.value.filter(
-        (apt) =>
-          ["pending", "confirmed"].includes(apt.status) &&
-          isUpcoming(apt.schedule_details?.date)
-      ).length
+
+    const upcomingCount = computed(
+      () =>
+        allAppointments.value.filter(
+          (apt) =>
+            ["pending", "confirmed"].includes(apt.status) &&
+            isUpcoming(apt.schedule_details?.date)
+        ).length
     );
 
-    const pendingCount = computed(() =>
-      allAppointments.value.filter((apt) => apt.status === "pending").length
+    const pendingCount = computed(
+      () =>
+        allAppointments.value.filter((apt) => apt.status === "pending").length
     );
 
-    const pastCount = computed(() =>
-      allAppointments.value.filter(
-        (apt) =>
-          isPast(apt.schedule_details?.date) || apt.status === "completed"
-      ).length
+    const pastCount = computed(
+      () =>
+        allAppointments.value.filter(
+          (apt) =>
+            isPast(apt.schedule_details?.date) || apt.status === "completed"
+        ).length
     );
 
-    const cancelledCount = computed(() =>
-      allAppointments.value.filter((apt) => apt.status === "cancelled").length
+    const cancelledCount = computed(
+      () =>
+        allAppointments.value.filter((apt) => apt.status === "cancelled").length
     );
 
-    const completedCount = computed(() =>
-      allAppointments.value.filter((apt) => apt.status === "completed").length
+    const completedCount = computed(
+      () =>
+        allAppointments.value.filter((apt) => apt.status === "completed").length
     );
 
     // Get filter description
@@ -407,11 +434,13 @@ export default {
           "appointments/cancelAppointment",
           appointmentId
         );
-        
+
         if (result.success) {
           // Appointments will be automatically updated via store
         } else {
-          alert(result.error || "Failed to cancel appointment. Please try again.");
+          alert(
+            result.error || "Failed to cancel appointment. Please try again."
+          );
         }
       } catch (error) {
         console.error("Failed to cancel appointment", error);
