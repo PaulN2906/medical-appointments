@@ -1,4 +1,5 @@
 import AuthService from "@/services/auth.service";
+import UserService from "@/services/user.service";
 
 // Helper functions for localStorage
 const saveUserToStorage = (user) => {
@@ -146,13 +147,8 @@ export default {
       if (state.user) {
         try {
           // Try to get user profile to verify auth is still valid
-          const response =
-            (await AuthService.getUserProfile?.()) ||
-            (await fetch("/api/auth/users/get_profile/", {
-              credentials: "include",
-            }));
-
-          if (response.ok || response.status === 200) {
+          const response = await UserService.getUserProfile();
+          if (response.status === 200) {
             // User is still authenticated, keep the stored user
             console.log("Authentication verified on startup");
             return true;
