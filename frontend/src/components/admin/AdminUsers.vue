@@ -87,9 +87,7 @@
         </div>
         <div class="card-body">
           <div v-if="loadingDoctors" class="text-center p-4">
-            <div class="spinner-border" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
+            <LoadingSpinner />
           </div>
 
           <div v-else-if="filteredDoctors.length === 0" class="text-center p-4">
@@ -174,9 +172,7 @@
         </div>
         <div class="card-body">
           <div v-if="loadingPatients" class="text-center p-4">
-            <div class="spinner-border" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
+            <LoadingSpinner />
           </div>
 
           <div

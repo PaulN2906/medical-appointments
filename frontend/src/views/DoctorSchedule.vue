@@ -36,9 +36,7 @@
           <div class="card-header">My Schedule</div>
           <div class="card-body">
             <div v-if="loading" class="text-center p-4">
-              <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
+              <LoadingSpinner />
             </div>
 
             <div v-else>
@@ -140,11 +138,7 @@
                   class="btn btn-primary"
                   :disabled="saving"
                 >
-                  <span
-                    v-if="saving"
-                    class="spinner-border spinner-border-sm me-2"
-                    role="status"
-                  ></span>
+                  <LoadingSpinner v-if="saving" size="sm" class="me-2" />
                   Save
                 </button>
               </div>
@@ -292,11 +286,7 @@
                   class="btn btn-primary"
                   :disabled="bulkSaving"
                 >
-                  <span
-                    v-if="bulkSaving"
-                    class="spinner-border spinner-border-sm me-2"
-                    role="status"
-                  ></span>
+                  <LoadingSpinner v-if="bulkSaving" size="sm" class="me-2" />
                   Create Slots
                 </button>
               </div>

@@ -8,9 +8,7 @@
           <div class="card-header">2FA Settings</div>
           <div class="card-body">
             <div v-if="loading" class="text-center p-4">
-              <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
+              <LoadingSpinner />
             </div>
 
             <div v-else>
@@ -41,11 +39,7 @@
                   class="btn btn-primary"
                   :disabled="enabling"
                 >
-                  <span
-                    v-if="enabling"
-                    class="spinner-border spinner-border-sm me-2"
-                    role="status"
-                  ></span>
+                  <LoadingSpinner v-if="enabling" size="sm" class="me-2" />
                   Enable 2FA
                 </button>
               </div>
@@ -62,11 +56,7 @@
                     class="btn btn-danger"
                     :disabled="disabling"
                   >
-                    <span
-                      v-if="disabling"
-                      class="spinner-border spinner-border-sm me-2"
-                      role="status"
-                    ></span>
+                    <LoadingSpinner v-if="disabling" size="sm" class="me-2" />
                     Disable 2FA
                   </button>
 
@@ -75,11 +65,11 @@
                     class="btn btn-warning"
                     :disabled="regenerating"
                   >
-                    <span
+                    <LoadingSpinner
                       v-if="regenerating"
-                      class="spinner-border spinner-border-sm me-2"
-                      role="status"
-                    ></span>
+                      size="sm"
+                      class="me-2"
+                    />
                     Regenerate Backup Codes
                   </button>
                 </div>
@@ -136,7 +126,7 @@
                             class="qr-code img-fluid"
                           />
                           <div v-else class="qr-placeholder">
-                            <span class="spinner-border" role="status"></span>
+                            <LoadingSpinner />
                           </div>
                         </div>
 
@@ -195,11 +185,11 @@
                                 verifying || verificationCode.length !== 6
                               "
                             >
-                              <span
+                              <LoadingSpinner
                                 v-if="verifying"
-                                class="spinner-border spinner-border-sm me-2"
-                                role="status"
-                              ></span>
+                                size="sm"
+                                class="me-2"
+                              />
                               <i class="bi bi-check-circle me-2" v-else></i>
                               Complete Setup
                             </button>

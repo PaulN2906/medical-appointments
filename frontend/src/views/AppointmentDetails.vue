@@ -16,9 +16,7 @@
           </div>
 
           <div v-if="loading" class="card-body text-center p-5">
-            <div class="spinner-border" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
+            <LoadingSpinner />
           </div>
 
           <template v-else-if="appointment">

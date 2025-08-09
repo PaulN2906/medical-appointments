@@ -116,11 +116,7 @@
           Cancel
         </button>
         <button type="submit" class="btn btn-primary" :disabled="creating">
-          <span
-            v-if="creating"
-            class="spinner-border spinner-border-sm me-2"
-            role="status"
-          ></span>
+          <LoadingSpinner v-if="creating" size="sm" class="me-2" />
           <i v-else class="bi bi-person-plus me-2"></i>
           Create {{ userType === "doctor" ? "Doctor" : "Patient" }}
         </button>

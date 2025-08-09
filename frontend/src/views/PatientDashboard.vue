@@ -53,9 +53,7 @@
           </div>
           <div class="card-body">
             <div v-if="loading" class="text-center p-4">
-              <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
+              <LoadingSpinner />
             </div>
 
             <div
@@ -158,9 +156,7 @@
           <div class="card-header">Recent Notifications</div>
           <div class="card-body">
             <div v-if="loadingNotifications" class="text-center p-4">
-              <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
+              <LoadingSpinner />
             </div>
 
             <div

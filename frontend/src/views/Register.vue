@@ -115,11 +115,7 @@
                 class="btn btn-primary w-100"
                 :disabled="loading"
               >
-                <span
-                  v-if="loading"
-                  class="spinner-border spinner-border-sm me-2"
-                  role="status"
-                ></span>
+                <LoadingSpinner v-if="loading" size="sm" class="me-2" />
                 Register
               </button>
             </form>
