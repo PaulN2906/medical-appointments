@@ -52,12 +52,30 @@ class UserViewSet(viewsets.ModelViewSet):
     def login(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
-        
+
+        from django.core.cache import cache
+        import logging
+
+        ip = request.META.get('REMOTE_ADDR')
+        failed_attempts_key = f"login_failed_{username}_{ip}"
+        lockout_key = f"login_lockout_{username}_{ip}"
+        logger = logging.getLogger(__name__)
+
+        if cache.get(lockout_key):
+            return Response(
+                {'error': 'Too many failed attempts. Please try again in 15 minutes.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
         user = authenticate(username=username, password=password)
 
         if user is not None:
             if not user.is_active:
                 return Response({'error': 'Account is inactive'}, status=status.HTTP_403_FORBIDDEN)
+
+            # reset failed attempts on successful login
+            cache.delete(failed_attempts_key)
+            cache.delete(lockout_key)
 
             profile = UserProfile.objects.get(user=user)
 
@@ -67,14 +85,14 @@ class UserViewSet(viewsets.ModelViewSet):
                     'user_id': user.id,
                     'requires_2fa': True
                 }, status=status.HTTP_200_OK)
-            
+
             Token.objects.filter(user=user).delete()
             token = Token.objects.create(user=user)
 
             # Get additional IDs based on role
             doctor_id = None
             patient_id = None
-            
+
             if profile.role == 'doctor' and hasattr(user, 'doctor'):
                 doctor_id = user.doctor.id
             elif profile.role == 'patient' and hasattr(user, 'patient'):
@@ -100,9 +118,36 @@ class UserViewSet(viewsets.ModelViewSet):
                 secure=secure,
                 samesite='Strict'
             )
+            # Log successful login
+            logger.info(
+                f"Successful login for user {user.username} from IP {ip}"
+            )
             return response
         else:
-            return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+            failed_attempts = cache.get(failed_attempts_key, 0) + 1
+            cache.set(failed_attempts_key, failed_attempts, timeout=900)  # 15 minute
+            logger.warning(
+                f"Failed login attempt #{failed_attempts} for username {username} from IP {ip}"
+            )
+
+            if failed_attempts >= 5:
+                cache.set(lockout_key, True, timeout=900)
+                logger.error(
+                    f"User {username} locked out due to too many failed login attempts from IP {ip}"
+                )
+                return Response(
+                    {
+                        'error': 'Too many failed login attempts. Account locked for 15 minutes.'
+                    },
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
+
+            return Response(
+                {
+                    'error': f'Invalid credentials. {5 - failed_attempts} attempts remaining.'
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def logout(self, request):
