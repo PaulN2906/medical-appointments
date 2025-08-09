@@ -29,12 +29,39 @@ const clearUserFromStorage = () => {
   }
 };
 
+// Token helpers
+const saveTokenToStorage = (token) => {
+  try {
+    localStorage.setItem("token", token);
+  } catch (error) {
+    console.warn("Failed to save token to localStorage:", error);
+  }
+};
+
+const loadTokenFromStorage = () => {
+  try {
+    return localStorage.getItem("token");
+  } catch (error) {
+    console.warn("Failed to load token from localStorage:", error);
+    localStorage.removeItem("token");
+    return null;
+  }
+};
+
+const clearTokenFromStorage = () => {
+  try {
+    localStorage.removeItem("token");
+  } catch (error) {
+    console.warn("Failed to clear token from localStorage:", error);
+  }
+};
+
 export default {
   namespaced: true,
 
   state: {
     user: loadUserFromStorage(), // Load user on initialization
-    token: null,
+    token: loadTokenFromStorage(),
     requires2FA: false,
     tempUserId: null,
   },
@@ -50,6 +77,11 @@ export default {
     },
     setToken(state, token) {
       state.token = token;
+      if (token) {
+        saveTokenToStorage(token);
+      } else {
+        clearTokenFromStorage();
+      }
     },
     setRequires2FA(state, { requires2FA, userId }) {
       state.requires2FA = requires2FA;
@@ -61,6 +93,7 @@ export default {
       state.requires2FA = false;
       state.tempUserId = null;
       clearUserFromStorage();
+      clearTokenFromStorage();
     },
   },
 
@@ -146,18 +179,18 @@ export default {
       // If we have a user in state/localStorage, verify they're still authenticated
       if (state.user) {
         try {
-          // Try to get user profile to verify auth is still valid
+          if (!state.token) {
+            const refreshResp = await AuthService.refresh();
+            commit("setToken", refreshResp.data.token);
+          }
           const response = await UserService.getUserProfile();
           if (response.status === 200) {
-            // User is still authenticated, keep the stored user
             console.log("Authentication verified on startup");
             return true;
-          } else {
-            // Auth expired, clear it
-            console.log("Authentication expired, clearing user");
-            commit("clearAuth");
-            return false;
           }
+          console.log("Authentication expired, clearing user");
+          commit("clearAuth");
+          return false;
         } catch (error) {
           console.warn("Auth check failed:", error);
           // If we can't verify, assume auth is invalid
