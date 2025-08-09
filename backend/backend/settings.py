@@ -226,12 +226,16 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
         'authentication.authentication.CookieTokenAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
+        'authentication.authentication.ExpiringTokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
+
+# Lifetime for authentication tokens
+from datetime import timedelta
+TOKEN_EXPIRATION_TIME = timedelta(hours=1)
 
 # Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
