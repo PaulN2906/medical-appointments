@@ -87,6 +87,7 @@ export default {
           };
 
           commit("setUser", userData);
+          commit("setToken", response.data.token);
           return { success: true };
         }
       } catch (error) {
@@ -109,6 +110,7 @@ export default {
         };
 
         commit("setUser", userData);
+        commit("setToken", response.data.token);
         commit("setRequires2FA", { requires2FA: false, userId: null });
         return { success: true };
       } catch (error) {

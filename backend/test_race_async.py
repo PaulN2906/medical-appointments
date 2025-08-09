@@ -36,7 +36,7 @@ class AsyncTester:
     
     async def make_appointment(self, session, token, patient_id, request_id):
         """Incercare programare"""
-        headers = {'Authorization': f'Token {token}'}
+        headers = {'Authorization': f'Bearer {token}'}
         appointment_data = {
             'doctor': DOCTOR_ID,
             'patient': patient_id,

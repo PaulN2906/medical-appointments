@@ -9,6 +9,8 @@ from rest_framework.authentication import TokenAuthentication
 class ExpiringTokenAuthentication(TokenAuthentication):
     """Token authentication that verifies token expiry."""
 
+    keyword = "Bearer"
+
     def authenticate_credentials(self, key):
         model = self.get_model()
         try:
@@ -25,13 +27,3 @@ class ExpiringTokenAuthentication(TokenAuthentication):
             raise exceptions.AuthenticationFailed("Token has expired.")
 
         return (token.user, token)
-
-
-class CookieTokenAuthentication(ExpiringTokenAuthentication):
-    """Token authentication using the 'auth_token' cookie."""
-
-    def authenticate(self, request):
-        token = request.COOKIES.get("auth_token")
-        if not token:
-            return None
-        return self.authenticate_credentials(token)
