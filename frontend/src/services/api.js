@@ -1,4 +1,5 @@
 import axios from "axios";
+import store from "@/store";
 
 const api = axios.create({
   baseURL: process.env.VUE_APP_API_URL || "/api/",
@@ -10,7 +11,14 @@ const api = axios.create({
   },
 });
 
-// No token injection needed; credentials (cookies) are sent automatically
+// Include access token-ul in toate requesturile
+api.interceptors.request.use((config) => {
+  const token = store.state.auth.token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 // Interceptor pentru gestionarea raspunsurilor
 api.interceptors.response.use(

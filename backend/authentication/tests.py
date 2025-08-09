@@ -49,7 +49,7 @@ class ChangePasswordTest(APITestCase):
         )
         self.client.force_authenticate(user=self.user)
 
-    def test_change_password_sets_auth_cookie(self):
+    def test_change_password_sets_refresh_cookie(self):
         url = reverse('user-change-password')
 
         response = self.client.post(
@@ -63,9 +63,9 @@ class ChangePasswordTest(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotIn('token', response.data)
-        self.assertIn('auth_token', response.cookies)
+        self.assertIn('refresh_token', response.cookies)
 
-        cookie_token = response.cookies['auth_token'].value
+        cookie_token = response.cookies['refresh_token'].value
         self.assertTrue(Token.objects.filter(key=cookie_token, user=self.user).exists())
 
 
@@ -90,10 +90,10 @@ class BackupCodeAuthTest(APITestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn('auth_token', response.cookies)
+        self.assertIn('refresh_token', response.cookies)
 
         # Token should exist and backup code should be consumed
-        token_key = response.cookies['auth_token'].value
+        token_key = response.cookies['refresh_token'].value
         self.assertTrue(Token.objects.filter(key=token_key, user=self.user).exists())
         self.profile.refresh_from_db()
         self.assertEqual(self.profile.backup_codes, [])

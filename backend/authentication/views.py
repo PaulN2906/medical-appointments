@@ -79,7 +79,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 doctor_id = user.doctor.id
             elif profile.role == 'patient' and hasattr(user, 'patient'):
                 patient_id = user.patient.id
-            
+
             response = Response({
                 'user_id': user.id,
                 'email': user.email,
@@ -89,15 +89,16 @@ class UserViewSet(viewsets.ModelViewSet):
                 'last_name': user.last_name,
                 'doctor_id': doctor_id,
                 'patient_id': patient_id,
-                'two_fa_enabled': profile.two_fa_enabled
+                'two_fa_enabled': profile.two_fa_enabled,
+                'token': token.key,
             }, status=status.HTTP_200_OK)
             secure = not getattr(settings, 'DEBUG', False)
             response.set_cookie(
-                'auth_token',
+                'refresh_token',
                 token.key,
                 httponly=True,
                 secure=secure,
-                samesite='Lax'
+                samesite='Strict'
             )
             return response
         else:
@@ -107,7 +108,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def logout(self, request):
         Token.objects.filter(user=request.user).delete()
         response = Response({'message': 'Logged out'}, status=status.HTTP_200_OK)
-        response.delete_cookie('auth_token')
+        response.delete_cookie('refresh_token')
         return response
     
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
@@ -303,15 +304,16 @@ class UserViewSet(viewsets.ModelViewSet):
                     'last_name': user.last_name,
                     'doctor_id': doctor_id,
                     'patient_id': patient_id,
-                    'two_fa_enabled': profile.two_fa_enabled
+                    'two_fa_enabled': profile.two_fa_enabled,
+                    'token': token.key,
                 }, status=status.HTTP_200_OK)
                 secure = not getattr(settings, 'DEBUG', False)
                 response.set_cookie(
-                    'auth_token',
+                    'refresh_token',
                     token.key,
                     httponly=True,
                     secure=secure,
-                    samesite='Lax'
+                    samesite='Strict'
                 )
                 return response
             else:
@@ -387,16 +389,17 @@ class UserViewSet(viewsets.ModelViewSet):
                 'doctor_id': doctor_id,
                 'patient_id': patient_id,
                 'two_fa_enabled': profile.two_fa_enabled,
+                'token': token.key,
             },
             status=status.HTTP_200_OK,
         )
         secure = not getattr(settings, 'DEBUG', False)
         response.set_cookie(
-            'auth_token',
+            'refresh_token',
             token.key,
             httponly=True,
             secure=secure,
-            samesite='Lax',
+            samesite='Strict',
         )
         return response
     
@@ -541,11 +544,11 @@ class UserViewSet(viewsets.ModelViewSet):
 
         secure = not getattr(settings, 'DEBUG', False)
         response.set_cookie(
-            'auth_token',
+            'refresh_token',
             new_token.key,
             httponly=True,
             secure=secure,
-            samesite='Lax',
+            samesite='Strict',
         )
 
         return response
