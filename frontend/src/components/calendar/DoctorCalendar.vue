@@ -3,9 +3,7 @@
     <h2 class="mb-4">Doctor's Schedule</h2>
 
     <div v-if="loading" class="text-center my-5">
-      <div class="spinner-border" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
+      <LoadingSpinner />
     </div>
 
     <div v-else>

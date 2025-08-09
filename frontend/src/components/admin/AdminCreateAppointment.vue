@@ -59,7 +59,7 @@
         <div class="col-md-8 mb-3">
           <label class="form-label">Available Time Slots *</label>
           <div v-if="loadingSlots" class="text-center p-2">
-            <div class="spinner-border spinner-border-sm" role="status"></div>
+            <LoadingSpinner size="sm" />
             <span class="ms-2">Loading available slots...</span>
           </div>
           <div
@@ -128,11 +128,7 @@
             creating || !form.patient || !form.doctor || !form.schedule
           "
         >
-          <span
-            v-if="creating"
-            class="spinner-border spinner-border-sm me-2"
-            role="status"
-          ></span>
+          <LoadingSpinner v-if="creating" size="sm" class="me-2" />
           <i v-else class="bi bi-calendar-plus me-2"></i>
           Create Appointment
         </button>

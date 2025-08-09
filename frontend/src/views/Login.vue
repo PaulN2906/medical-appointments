@@ -34,11 +34,7 @@
               </div>
 
               <button type="submit" class="btn btn-primary" :disabled="loading">
-                <span
-                  v-if="loading"
-                  class="spinner-border spinner-border-sm"
-                  role="status"
-                ></span>
+                <LoadingSpinner v-if="loading" size="sm" />
                 Login
               </button>
             </form>
@@ -70,11 +66,7 @@
                 class="btn btn-primary"
                 :disabled="loading2FA"
               >
-                <span
-                  v-if="loading2FA"
-                  class="spinner-border spinner-border-sm"
-                  role="status"
-                ></span>
+                <LoadingSpinner v-if="loading2FA" size="sm" />
                 Verify
               </button>
             </form>

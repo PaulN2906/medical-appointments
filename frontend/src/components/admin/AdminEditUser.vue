@@ -92,10 +92,7 @@
           Cancel
         </button>
         <button type="submit" class="btn btn-primary" :disabled="updating">
-          <span
-            v-if="updating"
-            class="spinner-border spinner-border-sm me-2"
-          ></span>
+          <LoadingSpinner v-if="updating" size="sm" class="me-2" />
           Update User
         </button>
       </div>

@@ -9,9 +9,7 @@
           <div class="card-header">Select a Doctor</div>
           <div class="card-body">
             <div v-if="loadingDoctors" class="text-center p-4">
-              <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
+              <LoadingSpinner />
             </div>
             <div v-else>
               <div class="row">
@@ -173,11 +171,7 @@
                         class="btn btn-success"
                         :disabled="!confirmed || booking"
                       >
-                        <span
-                          v-if="booking"
-                          class="spinner-border spinner-border-sm me-2"
-                          role="status"
-                        ></span>
+                        <LoadingSpinner v-if="booking" size="sm" class="me-2" />
                         Book Appointment
                       </button>
                     </div>

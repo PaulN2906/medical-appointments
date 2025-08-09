@@ -41,9 +41,7 @@
             <!-- Personal Information Tab -->
             <div v-if="activeTab === 'personal'">
               <div v-if="loadingProfile" class="text-center p-4">
-                <div class="spinner-border" role="status">
-                  <span class="visually-hidden">Loading...</span>
-                </div>
+                <LoadingSpinner />
               </div>
 
               <div v-else-if="personalInfoError" class="alert alert-danger">
@@ -141,11 +139,11 @@
                     class="btn btn-primary"
                     :disabled="savingPersonalInfo"
                   >
-                    <span
+                    <LoadingSpinner
                       v-if="savingPersonalInfo"
-                      class="spinner-border spinner-border-sm me-2"
-                      role="status"
-                    ></span>
+                      size="sm"
+                      class="me-2"
+                    />
                     Save Changes
                   </button>
                 </div>
@@ -282,11 +280,11 @@
                     class="btn btn-primary"
                     :disabled="savingPassword || !isPasswordFormValid"
                   >
-                    <span
+                    <LoadingSpinner
                       v-if="savingPassword"
-                      class="spinner-border spinner-border-sm me-2"
-                      role="status"
-                    ></span>
+                      size="sm"
+                      class="me-2"
+                    />
                     <i class="bi bi-key me-2" v-else></i>
                     Change Password
                   </button>
@@ -329,9 +327,7 @@
             <!-- Notification Preferences Tab -->
             <div v-if="activeTab === 'notifications'">
               <div v-if="loadingNotifications" class="text-center p-4">
-                <div class="spinner-border" role="status">
-                  <span class="visually-hidden">Loading...</span>
-                </div>
+                <LoadingSpinner />
               </div>
 
               <div v-else>
@@ -563,11 +559,11 @@
                       class="btn btn-primary"
                       :disabled="savingNotificationPrefs"
                     >
-                      <span
+                      <LoadingSpinner
                         v-if="savingNotificationPrefs"
-                        class="spinner-border spinner-border-sm me-2"
-                        role="status"
-                      ></span>
+                        size="sm"
+                        class="me-2"
+                      />
                       <i class="bi bi-bell me-2" v-else></i>
                       Save Preferences
                     </button>

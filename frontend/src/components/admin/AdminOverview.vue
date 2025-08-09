@@ -69,9 +69,7 @@
           </div>
           <div class="card-body">
             <div v-if="loading" class="text-center p-4">
-              <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
+              <LoadingSpinner />
             </div>
 
             <div

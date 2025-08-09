@@ -2,6 +2,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
 import store from "./store";
+import LoadingSpinner from "@/components/common/LoadingSpinner.vue";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
@@ -12,6 +13,7 @@ window.bootstrap = bootstrap;
 
 // Initialize the app
 const app = createApp(App);
+app.component("LoadingSpinner", LoadingSpinner);
 
 // Check authentication status before mounting
 async function initializeApp() {

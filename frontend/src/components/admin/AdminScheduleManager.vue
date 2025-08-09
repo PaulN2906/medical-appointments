@@ -28,7 +28,7 @@
 
       <!-- Schedule list -->
       <div v-if="loading" class="text-center p-4">
-        <div class="spinner-border" role="status"></div>
+        <LoadingSpinner />
       </div>
 
       <div v-else class="table-responsive">
@@ -161,10 +161,11 @@
                   class="btn btn-primary"
                   :disabled="creatingSchedule"
                 >
-                  <span
+                  <LoadingSpinner
                     v-if="creatingSchedule"
-                    class="spinner-border spinner-border-sm me-2"
-                  ></span>
+                    size="sm"
+                    class="me-2"
+                  />
                   Create Schedule
                 </button>
               </div>
