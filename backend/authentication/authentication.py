@@ -1,11 +1,37 @@
-from rest_framework.authentication import TokenAuthentication
-from rest_framework import HTTP_HEADER_ENCODING
+from datetime import timedelta
 
-class CookieTokenAuthentication(TokenAuthentication):
+from django.conf import settings
+from django.utils import timezone
+from rest_framework import exceptions
+from rest_framework.authentication import TokenAuthentication
+
+
+class ExpiringTokenAuthentication(TokenAuthentication):
+    """Token authentication that verifies token expiry."""
+
+    def authenticate_credentials(self, key):
+        model = self.get_model()
+        try:
+            token = model.objects.select_related("user").get(key=key)
+        except model.DoesNotExist:
+            raise exceptions.AuthenticationFailed("Invalid token.")
+
+        if not token.user.is_active:
+            raise exceptions.AuthenticationFailed("User inactive or deleted.")
+
+        expiry = getattr(settings, "TOKEN_EXPIRATION_TIME", timedelta(hours=1))
+        if timezone.now() - token.created > expiry:
+            token.delete()
+            raise exceptions.AuthenticationFailed("Token has expired.")
+
+        return (token.user, token)
+
+
+class CookieTokenAuthentication(ExpiringTokenAuthentication):
     """Token authentication using the 'auth_token' cookie."""
 
     def authenticate(self, request):
-        token = request.COOKIES.get('auth_token')
+        token = request.COOKIES.get("auth_token")
         if not token:
             return None
         return self.authenticate_credentials(token)

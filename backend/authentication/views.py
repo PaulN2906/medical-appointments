@@ -68,7 +68,8 @@ class UserViewSet(viewsets.ModelViewSet):
                     'requires_2fa': True
                 }, status=status.HTTP_200_OK)
             
-            token, _ = Token.objects.get_or_create(user=user)
+            Token.objects.filter(user=user).delete()
+            token = Token.objects.create(user=user)
 
             # Get additional IDs based on role
             doctor_id = None
@@ -282,7 +283,8 @@ class UserViewSet(viewsets.ModelViewSet):
                 logger = logging.getLogger(__name__)
                 logger.info(f"Successful 2FA login for user {user.username} from IP {request.META.get('REMOTE_ADDR')}")
                 
-                token, _ = Token.objects.get_or_create(user=user)
+                Token.objects.filter(user=user).delete()
+                token = Token.objects.create(user=user)
                 profile = UserProfile.objects.get(user=user)
                 
                 doctor_id = None
@@ -364,7 +366,8 @@ class UserViewSet(viewsets.ModelViewSet):
         if not profile.verify_backup_code(code):
             return Response({'error': 'Invalid backup code'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        token, _ = Token.objects.get_or_create(user=user)
+        Token.objects.filter(user=user).delete()
+        token = Token.objects.create(user=user)
 
         doctor_id = None
         patient_id = None

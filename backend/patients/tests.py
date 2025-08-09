@@ -8,6 +8,13 @@ from .models import Patient
 from datetime import date, time, timedelta
 
 
+def next_weekday(d: date) -> date:
+    """Return the next weekday (Monday-Friday) on or after ``d``."""
+    while d.weekday() >= 5:
+        d += timedelta(days=1)
+    return d
+
+
 class PatientModelTest(TestCase):
     def test_str_representation(self):
         user = User.objects.create_user(
@@ -33,16 +40,17 @@ class PatientViewsetQuerysetTest(TestCase):
         self.patient1 = Patient.objects.create(user=patient1_user)
         self.patient2 = Patient.objects.create(user=patient2_user)
 
+        schedule_day = next_weekday(date.today() + timedelta(days=1))
         schedule1 = Schedule.objects.create(
             doctor=self.doctor,
-            date=date.today() + timedelta(days=1),
+            date=schedule_day,
             start_time=time(9, 0),
             end_time=time(10, 0),
         )
 
         schedule2 = Schedule.objects.create(
             doctor=self.other_doctor,
-            date=date.today() + timedelta(days=1),
+            date=schedule_day,
             start_time=time(11, 0),
             end_time=time(12, 0),
         )

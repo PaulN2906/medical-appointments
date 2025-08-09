@@ -7,13 +7,20 @@ from rest_framework.test import APIClient
 from .models import Doctor, Schedule
 
 
+def next_weekday(d: date) -> date:
+    """Return the next weekday (Monday-Friday) on or after ``d``."""
+    while d.weekday() >= 5:  # 5 = Saturday, 6 = Sunday
+        d += timedelta(days=1)
+    return d
+
+
 class ScheduleModelTest(TestCase):
     def setUp(self):
         user = User.objects.create_user(username='doc', password='pass')
         self.doctor = Doctor.objects.create(user=user, speciality='gen')
 
     def test_schedule_unique_constraint(self):
-        day = date.today() + timedelta(days=1)
+        day = next_weekday(date.today() + timedelta(days=1))
         Schedule.objects.create(
             doctor=self.doctor,
             date=day,
@@ -40,15 +47,16 @@ class ScheduleViewsetQuerysetTest(TestCase):
         self.doctor1 = Doctor.objects.create(user=user1, speciality='gen')
         self.doctor2 = Doctor.objects.create(user=user2, speciality='gen')
 
+        schedule_day = next_weekday(date.today() + timedelta(days=1))
         Schedule.objects.create(
             doctor=self.doctor1,
-            date=date.today() + timedelta(days=1),
+            date=schedule_day,
             start_time=time(9, 0),
             end_time=time(10, 0),
         )
         Schedule.objects.create(
             doctor=self.doctor2,
-            date=date.today() + timedelta(days=1),
+            date=schedule_day,
             start_time=time(11, 0),
             end_time=time(12, 0),
         )
@@ -84,7 +92,7 @@ class ScheduleViewsetCreateTest(TestCase):
         self.client.force_authenticate(user=self.doctor1.user)
         data = {
             'doctor': self.doctor2.id,
-            'date': date.today() + timedelta(days=1),
+            'date': next_weekday(date.today() + timedelta(days=1)),
             'start_time': time(9, 0),
             'end_time': time(10, 0),
             'is_available': True,
@@ -102,7 +110,7 @@ class ScheduleViewsetCreateTest(TestCase):
         self.client.force_authenticate(user=user)
         data = {
             'doctor': self.doctor1.id,
-            'date': date.today() + timedelta(days=1),
+            'date': next_weekday(date.today() + timedelta(days=1)),
             'start_time': time(9, 0),
             'end_time': time(10, 0),
             'is_available': True,
