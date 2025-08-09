@@ -23,8 +23,11 @@
               <router-link to="/dashboard" class="btn btn-primary me-3">
                 Go to Dashboard
               </router-link>
-              <router-link to="/appointments" class="btn btn-outline-secondary">
-                View All Appointments
+              <router-link
+                to="/patient-calendar"
+                class="btn btn-outline-secondary"
+              >
+                View My Calendar
               </router-link>
             </div>
           </div>
