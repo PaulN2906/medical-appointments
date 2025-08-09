@@ -6,10 +6,10 @@
       <div class="col-md-4 mb-4">
         <div class="card">
           <div class="card-body">
-            <h5 class="card-title">My Appointments</h5>
-            <p class="card-text">View and manage your upcoming appointments.</p>
-            <router-link to="/appointments" class="btn btn-primary"
-              >View Appointments</router-link
+            <h5 class="card-title">My Calendar</h5>
+            <p class="card-text">View and manage your appointments.</p>
+            <router-link to="/patient-calendar" class="btn btn-primary"
+              >View Calendar</router-link
             >
           </div>
         </div>
@@ -73,10 +73,10 @@
               <!-- Show link to view all appointments if there might be past ones -->
               <div class="mt-3">
                 <router-link
-                  to="/appointments"
+                  to="/patient-calendar"
                   class="btn btn-outline-secondary btn-sm"
                 >
-                  View All Appointments
+                  View My Calendar
                 </router-link>
               </div>
             </div>

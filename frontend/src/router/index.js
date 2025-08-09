@@ -89,6 +89,12 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: "/patient-calendar",
+    name: "PatientCalendar",
+    component: () => import("@/views/PatientCalendar.vue"),
+    meta: { requiresAuth: true, role: "patient" },
+  },
+  {
     path: "/profile",
     name: "Profile",
     component: Profile,

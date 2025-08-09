@@ -27,8 +27,8 @@
             </router-link>
           </li>
           <li class="nav-item" v-if="isAuthenticated && isPatient">
-            <router-link class="nav-link" to="/appointments">
-              My Appointments
+            <router-link class="nav-link" to="/patient-calendar">
+              My Calendar
             </router-link>
           </li>
           <li class="nav-item" v-if="isAuthenticated && isPatient">
