@@ -54,10 +54,13 @@ class UserViewSet(viewsets.ModelViewSet):
         password = request.data.get('password')
         
         user = authenticate(username=username, password=password)
-        
+
         if user is not None:
+            if not user.is_active:
+                return Response({'error': 'Account is inactive'}, status=status.HTTP_403_FORBIDDEN)
+
             profile = UserProfile.objects.get(user=user)
-            
+
             if profile.two_fa_enabled:
                 return Response({
                     'message': '2FA required',
