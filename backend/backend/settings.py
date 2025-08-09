@@ -140,6 +140,8 @@ if 'test' in sys.argv:
     DATABASES['default']['NAME'] = BASE_DIR / 'test_db.sqlite3'
     # For tests, use more aggressive settings
     DATABASES['default']['OPTIONS']['timeout'] = 60
+    # Disable HTTPS redirect during tests to avoid 301 responses
+    SECURE_SSL_REDIRECT = False
 
 
 # Password validation
