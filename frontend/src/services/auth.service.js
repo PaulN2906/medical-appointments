@@ -40,4 +40,8 @@ export default {
   logout() {
     return api.post("auth/users/logout/");
   },
+
+  refresh() {
+    return api.post("auth/users/refresh/");
+  },
 };

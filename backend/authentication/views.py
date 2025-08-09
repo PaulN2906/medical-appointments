@@ -149,6 +149,36 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
+    @action(detail=False, methods=["post"], permission_classes=[permissions.AllowAny])
+    def refresh(self, request):
+        token_key = request.COOKIES.get("refresh_token")
+        if not token_key:
+            return Response(
+                {"error": "No refresh token provided"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        try:
+            token = Token.objects.get(key=token_key)
+        except Token.DoesNotExist:
+            return Response(
+                {"error": "Invalid refresh token"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        user = token.user
+        token.delete()
+        new_token = Token.objects.create(user=user)
+        response = Response({"token": new_token.key}, status=status.HTTP_200_OK)
+        secure = not getattr(settings, "DEBUG", False)
+        response.set_cookie(
+            "refresh_token",
+            new_token.key,
+            httponly=True,
+            secure=secure,
+            samesite="Strict",
+        )
+        return response
+
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def logout(self, request):
         Token.objects.filter(user=request.user).delete()

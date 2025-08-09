@@ -97,3 +97,37 @@ class BackupCodeAuthTest(APITestCase):
         self.assertTrue(Token.objects.filter(key=token_key, user=self.user).exists())
         self.profile.refresh_from_db()
         self.assertEqual(self.profile.backup_codes, [])
+
+
+class TokenRefreshTest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="refresher",
+            password="pass1234",
+            email="refresh@example.com",
+        )
+        self.profile = UserProfile.objects.create(user=self.user)
+
+    def test_refresh_issues_new_token(self):
+        login_url = reverse("user-login")
+        refresh_url = reverse("user-refresh")
+        response = self.client.post(
+            login_url,
+            {"username": "refresher", "password": "pass1234"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        cookie_token = response.cookies["refresh_token"].value
+        self.assertTrue(Token.objects.filter(key=cookie_token, user=self.user).exists())
+
+        refresh_response = self.client.post(refresh_url, format="json")
+        self.assertEqual(refresh_response.status_code, 200)
+        new_token = refresh_response.data["token"]
+        self.assertNotEqual(cookie_token, new_token)
+        self.assertFalse(Token.objects.filter(key=cookie_token).exists())
+        self.assertTrue(Token.objects.filter(key=new_token, user=self.user).exists())
+
+    def test_refresh_without_cookie_fails(self):
+        refresh_url = reverse("user-refresh")
+        response = self.client.post(refresh_url, format="json")
+        self.assertEqual(response.status_code, 401)
