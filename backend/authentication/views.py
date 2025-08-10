@@ -6,7 +6,7 @@ from django.core.exceptions import PermissionDenied
 from .models import UserProfile, NotificationPreferences
 from doctors.models import Doctor
 from patients.models import Patient
-from .serializers import UserSerializer, NotificationPreferencesSerializer
+from .serializers import UserSerializer, NotificationPreferencesSerializer, AdminUserUpdateSerializer
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from django_otp.plugins.otp_totp.models import TOTPDevice
@@ -18,6 +18,14 @@ from django.db import transaction
 from django.contrib.auth.hashers import make_password
 from django.conf import settings
 import secrets
+import logging
+from rest_framework.pagination import PageNumberPagination
+from .permissions import IsAdminRole
+
+
+class UserPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -718,77 +726,24 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-    @action(detail=True, methods=['put'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=True, methods=['put'], permission_classes=[IsAdminRole])
     def update_user_by_admin(self, request, pk=None):
         """
         Permite adminilor sa actualizeze informatiile unui utilizator
         """
-        # Verifica daca utilizatorul curent este admin
-        if not (hasattr(request.user, 'profile') and request.user.profile.role == 'admin'):
-            raise PermissionDenied("Only administrators can update user information.")
-        
         try:
             user = User.objects.get(pk=pk)
         except User.DoesNotExist:
-            return Response(
-                {'error': 'User not found'}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        # Actualizeaza informatiile de baza ale utilizatorului
-        user.first_name = request.data.get('first_name', user.first_name)
-        user.last_name = request.data.get('last_name', user.last_name)
-        user.email = request.data.get('email', user.email)
-        
-        # Validare email unic
-        if User.objects.exclude(pk=user.pk).filter(email=user.email).exists():
-            return Response(
-                {'error': 'A user with this email already exists'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        user.save()
-        
-        # Actualizeaza informatiile specifice rolului
-        try:
-            profile = UserProfile.objects.get(user=user)
-            
-            if profile.role == 'doctor' and hasattr(user, 'doctor'):
-                doctor = user.doctor
-                doctor.speciality = request.data.get('speciality', doctor.speciality)
-                doctor.description = request.data.get('description', doctor.description)
-                doctor.save()
-                
-            elif profile.role == 'patient' and hasattr(user, 'patient'):
-                patient = user.patient
-                date_of_birth = request.data.get('date_of_birth')
-                if date_of_birth:
-                    try:
-                        from datetime import datetime
-                        patient.date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
-                        patient.save()
-                    except ValueError:
-                        return Response(
-                            {'error': 'Invalid date format. Use YYYY-MM-DD'}, 
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-            
-            # Actualizeaza numarul de telefon in profil
-            profile.phone_number = request.data.get('phone_number', profile.phone_number)
-            profile.save()
-            
-        except UserProfile.DoesNotExist:
-            return Response(
-                {'error': 'User profile not found'}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        # Log the action
-        import logging
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = AdminUserUpdateSerializer(instance=user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
         logger = logging.getLogger(__name__)
         logger.info(f"Admin {request.user.username} updated user {user.username}")
-        
-        # Returneaza datele actualizate
+
+        profile = user.profile
         user_data = {
             'id': user.id,
             'username': user.username,
@@ -801,8 +756,7 @@ class UserViewSet(viewsets.ModelViewSet):
             'date_joined': user.date_joined.isoformat(),
             'last_login': user.last_login.isoformat() if user.last_login else None,
         }
-        
-        # Adauga informatii specifice rolului
+
         if profile.role == 'doctor' and hasattr(user, 'doctor'):
             user_data.update({
                 'speciality': user.doctor.speciality,
@@ -812,68 +766,53 @@ class UserViewSet(viewsets.ModelViewSet):
             user_data.update({
                 'date_of_birth': user.patient.date_of_birth.isoformat() if user.patient.date_of_birth else None,
             })
-        
+
         return Response(user_data, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminRole])
     def reset_password_by_admin(self, request, pk=None):
         """
         Permite adminilor sa reseteze parola unui utilizator
         """
-        # Verifica daca utilizatorul curent este admin
-        if not (hasattr(request.user, 'profile') and request.user.profile.role == 'admin'):
-            raise PermissionDenied("Only administrators can reset user passwords.")
-        
         try:
             user = User.objects.get(pk=pk)
         except User.DoesNotExist:
-            return Response(
-                {'error': 'User not found'}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        # Genereaza o parola temporara
-        import secrets
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
         import string
-        
-        # Genereaza o parola de 12 caractere cu litere, cifre si simboluri
         alphabet = string.ascii_letters + string.digits + "!@#$%&*"
         temp_password = ''.join(secrets.choice(alphabet) for _ in range(12))
-        
-        # Seteaza noua parola
+
         user.set_password(temp_password)
         user.save()
-        
-        # Log the action
-        import logging
+
         logger = logging.getLogger(__name__)
         logger.info(f"Admin {request.user.username} reset password for user {user.username}")
-        
-        # In practica, aici am trimite email-ul cu parola temporara
-        # Pentru demo, returnam parola temporara (NU face asta in productie!)
+
+        from django.core.mail import send_mail
+        send_mail(
+            subject='Password Reset',
+            message=f'Your temporary password is: {temp_password}',
+            from_email=None,
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
+
         return Response({
-            'message': 'Password reset successfully',
-            'temporary_password': temp_password,  # DOAR pentru demo!
+            'message': 'Password reset email sent',
             'user_email': user.email,
             'note': 'The user should change this password on first login'
         }, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminRole])
     def deactivate_user(self, request, pk=None):
         """
         Permite adminilor sa dezactiveze/activeze utilizatori
         """
-        # Verifica daca utilizatorul curent este admin
-        if not (hasattr(request.user, 'profile') and request.user.profile.role == 'admin'):
-            raise PermissionDenied("Only administrators can deactivate users.")
-        
         try:
             user = User.objects.get(pk=pk)
         except User.DoesNotExist:
-            return Response(
-                {'error': 'User not found'}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         
         # Nu permite adminilor sa se dezactiveze pe ei insisi
         if user == request.user:
@@ -891,8 +830,6 @@ class UserViewSet(viewsets.ModelViewSet):
             from rest_framework.authtoken.models import Token
             Token.objects.filter(user=user).delete()
         
-        # Log the action
-        import logging
         logger = logging.getLogger(__name__)
         action = "activated" if user.is_active else "deactivated"
         logger.info(f"Admin {request.user.username} {action} user {user.username}")
@@ -904,19 +841,18 @@ class UserViewSet(viewsets.ModelViewSet):
             'is_active': user.is_active
         }, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminRole])
     def get_all_users_for_admin(self, request):
         """
         Returneaza toti utilizatorii pentru admin dashboard
         """
-        # Verifica daca utilizatorul curent este admin
-        if not (hasattr(request.user, 'profile') and request.user.profile.role == 'admin'):
-            raise PermissionDenied("Only administrators can view all users.")
-        
         users = User.objects.select_related('profile').all().order_by('-date_joined')
-        
+
+        paginator = UserPagination()
+        page = paginator.paginate_queryset(users, request)
+
         users_data = []
-        for user in users:
+        for user in page:
             try:
                 profile = user.profile
                 user_data = {
@@ -950,7 +886,4 @@ class UserViewSet(viewsets.ModelViewSet):
                 # Skip users without profiles
                 continue
         
-        return Response({
-            'count': len(users_data),
-            'users': users_data
-        }, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(users_data)

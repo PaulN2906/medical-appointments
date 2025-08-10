@@ -34,6 +34,66 @@ class UserSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+
+class AdminUserUpdateSerializer(serializers.ModelSerializer):
+    phone_number = serializers.CharField(required=False, allow_blank=True)
+    speciality = serializers.CharField(required=False, allow_blank=True)
+    description = serializers.CharField(required=False, allow_blank=True)
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'first_name',
+            'last_name',
+            'email',
+            'phone_number',
+            'speciality',
+            'description',
+            'date_of_birth'
+        ]
+
+    def validate_email(self, value):
+        try:
+            validate_email(value)
+        except ValidationError:
+            raise serializers.ValidationError("Enter a valid email address.")
+
+        if User.objects.filter(email=value).exclude(pk=self.instance.pk if self.instance else None).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+
+        return value.lower()
+
+    def update(self, instance, validated_data):
+        phone_number = validated_data.pop('phone_number', None)
+        speciality = validated_data.pop('speciality', None)
+        description = validated_data.pop('description', None)
+        date_of_birth = validated_data.pop('date_of_birth', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        profile = instance.profile
+        if phone_number is not None:
+            profile.phone_number = phone_number
+            profile.save()
+
+        if profile.role == 'doctor' and hasattr(instance, 'doctor'):
+            doctor = instance.doctor
+            if speciality is not None:
+                doctor.speciality = speciality
+            if description is not None:
+                doctor.description = description
+            doctor.save()
+        elif profile.role == 'patient' and hasattr(instance, 'patient'):
+            patient = instance.patient
+            if date_of_birth is not None:
+                patient.date_of_birth = date_of_birth
+                patient.save()
+
+        return instance
+
 class UserProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     

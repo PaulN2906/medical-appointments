@@ -7,6 +7,7 @@ from .serializers import DoctorSerializer, ScheduleSerializer
 from django.db import transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from authentication.permissions import IsAdminRole
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,10 +21,7 @@ class DoctorViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         # Admins can see all doctors
-        if user.is_staff or user.is_superuser:
-            return Doctor.objects.all()
-        
-        if hasattr(user, 'profile') and user.profile.role =='admin':
+        if IsAdminRole().has_permission(self.request, self):
             return Doctor.objects.all().select_related('user')
         
         # Doctors can see all doctors (but can only edit their own profile)
@@ -55,7 +53,7 @@ class DoctorViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         # Only allow admins to create new doctor profiles
-        if not (self.request.user.is_staff or self.request.user.is_superuser):
+        if not IsAdminRole().has_permission(self.request, self):
             raise PermissionDenied("Only administrators can create doctor profiles.")
         serializer.save()
 
@@ -69,7 +67,7 @@ class DoctorViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         # Only admins can delete doctor profiles
-        if not (self.request.user.is_staff or self.request.user.is_superuser):
+        if not IsAdminRole().has_permission(self.request, self):
             raise PermissionDenied("Only administrators can delete doctor profiles.")
         instance.delete()
 
@@ -82,11 +80,8 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         # Admins can see all schedules
-        if hasattr(user, 'profile') and user.profile.role == 'admin':
+        if IsAdminRole().has_permission(self.request, self):
             return Schedule.objects.all().select_related('doctor__user')
-
-        if user.is_staff or user.is_superuser:
-            return Schedule.objects.all()
         
         # Doctors can see their own schedules
         if hasattr(user, "doctor"):
@@ -108,7 +103,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         user = request.user
         
         # Admin poate crea schedule pentru orice doctor
-        if hasattr(user, 'profile') and user.profile.role == 'admin':
+        if IsAdminRole().has_permission(request, self):
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             
@@ -193,7 +188,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         user = request.user
         
         # Verifica permisiunile
-        if hasattr(user, 'profile') and user.profile.role == 'admin':
+        if IsAdminRole().has_permission(request, self):
             # Admin poate sterge orice schedule
             pass
         elif hasattr(user, 'doctor') and user.doctor == schedule.doctor:

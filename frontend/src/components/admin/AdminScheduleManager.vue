@@ -211,12 +211,24 @@ export default {
 
     const loadData = async () => {
       try {
-        const [doctorsResponse, schedulesResponse] = await Promise.all([
-          AdminService.getAllDoctors(),
+        const [usersResponse, schedulesResponse] = await Promise.all([
+          AdminService.getAllUsers(),
           AdminService.getAllSchedules(),
         ]);
 
-        doctors.value = doctorsResponse.data;
+        const data = usersResponse.data.results || [];
+        doctors.value = data
+          .filter((u) => u.role === "doctor")
+          .map((u) => ({
+            id: u.id,
+            speciality: u.speciality,
+            user: {
+              id: u.id,
+              first_name: u.first_name,
+              last_name: u.last_name,
+              email: u.email,
+            },
+          }));
         schedules.value = schedulesResponse.data;
       } catch (error) {
         console.error("Failed to load schedule data", error);

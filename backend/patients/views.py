@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions
 from .models import Patient
 from .serializers import PatientSerializer
+from authentication.permissions import IsAdminRole
 
 class PatientViewSet(viewsets.ModelViewSet):
     queryset = Patient.objects.all()
@@ -11,7 +12,7 @@ class PatientViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         # Admin can see all patients
-        if hasattr(user, 'profile') and user.profile.role == 'admin':
+        if IsAdminRole().has_permission(self.request, self):
             return Patient.objects.all().select_related('user')
 
         if user.is_staff or user.is_superuser:

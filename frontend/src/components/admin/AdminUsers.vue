@@ -86,7 +86,7 @@
           <h6 class="mb-0">All Doctors</h6>
         </div>
         <div class="card-body">
-          <div v-if="loadingDoctors" class="text-center p-4">
+          <div v-if="loadingUsers" class="text-center p-4">
             <LoadingSpinner />
           </div>
 
@@ -143,7 +143,7 @@
                     </button>
                     <button
                       class="btn btn-outline-warning"
-                      @click="resetPassword(doctor.user.id)"
+                      @click="resetPassword(doctor.user.id, doctor.user.email)"
                     >
                       <i class="bi bi-key me-1"></i>Reset PWD
                     </button>
@@ -171,7 +171,7 @@
           <h6 class="mb-0">All Patients</h6>
         </div>
         <div class="card-body">
-          <div v-if="loadingPatients" class="text-center p-4">
+          <div v-if="loadingUsers" class="text-center p-4">
             <LoadingSpinner />
           </div>
 
@@ -235,7 +235,7 @@
                     </button>
                     <button
                       class="btn btn-outline-warning"
-                      @click="resetPassword(patient.user.id)"
+                      @click="resetPassword(patient.user.id, patient.user.email)"
                     >
                       <i class="bi bi-key me-1"></i>Reset PWD
                     </button>
@@ -332,8 +332,7 @@ export default {
   },
 
   setup() {
-    const loadingDoctors = ref(true);
-    const loadingPatients = ref(true);
+    const loadingUsers = ref(true);
     const doctors = ref([]);
     const patients = ref([]);
 
@@ -347,25 +346,43 @@ export default {
     const editingUser = ref(null);
     const editingUserType = ref("");
 
-    const loadDoctors = async () => {
+    const loadUsers = async () => {
       try {
-        const response = await AdminService.getAllDoctors();
-        doctors.value = response.data;
+        const response = await AdminService.getAllUsers();
+        const data = response.data.results || [];
+        doctors.value = data
+          .filter((u) => u.role === "doctor")
+          .map((u) => ({
+            id: u.id,
+            speciality: u.speciality,
+            description: u.description,
+            user: {
+              id: u.id,
+              first_name: u.first_name,
+              last_name: u.last_name,
+              email: u.email,
+              is_active: u.is_active,
+              date_joined: u.date_joined,
+            },
+          }));
+        patients.value = data
+          .filter((u) => u.role === "patient")
+          .map((u) => ({
+            id: u.id,
+            date_of_birth: u.date_of_birth,
+            user: {
+              id: u.id,
+              first_name: u.first_name,
+              last_name: u.last_name,
+              email: u.email,
+              is_active: u.is_active,
+              date_joined: u.date_joined,
+            },
+          }));
       } catch (error) {
-        console.error("Failed to load doctors", error);
+        console.error("Failed to load users", error);
       } finally {
-        loadingDoctors.value = false;
-      }
-    };
-
-    const loadPatients = async () => {
-      try {
-        const response = await AdminService.getAllPatients();
-        patients.value = response.data;
-      } catch (error) {
-        console.error("Failed to load patients", error);
-      } finally {
-        loadingPatients.value = false;
+        loadingUsers.value = false;
       }
     };
 
@@ -411,22 +428,17 @@ export default {
     const resetPassword = async (userId, userEmail) => {
       if (
         !confirm(
-          `Are you sure you want to reset the password for ${userEmail}? A temporary password will be generated.`
+          `Are you sure you want to reset the password for ${userEmail}?`
         )
       ) {
         return;
       }
 
       try {
-        const response = await AdminService.resetUserPassword(userId);
-
-        // Show the temporary password (in practica, s-ar trimite prin email)
+        await AdminService.resetUserPassword(userId);
         alert(
-          `Password reset successfully!\n\n` +
-            `Temporary password: ${response.data.temporary_password}\n\n` +
-            `Please securely share this with the user. They should change it on first login.`
+          "Password reset successfully. The user will receive the temporary password via email."
         );
-
         console.log("Password reset for user:", userId);
       } catch (error) {
         console.error("Failed to reset password", error);
@@ -475,14 +487,12 @@ export default {
 
     const handleUserCreated = () => {
       showCreateModal.value = false;
-      loadDoctors();
-      loadPatients();
+      loadUsers();
     };
 
     const handleUserUpdated = () => {
       showEditModal.value = false;
-      loadDoctors();
-      loadPatients();
+      loadUsers();
     };
 
     // Helper functions
@@ -493,13 +503,11 @@ export default {
     };
 
     onMounted(() => {
-      loadDoctors();
-      loadPatients();
+      loadUsers();
     });
 
     return {
-      loadingDoctors,
-      loadingPatients,
+      loadingUsers,
       doctors,
       patients,
       activeUserTab,

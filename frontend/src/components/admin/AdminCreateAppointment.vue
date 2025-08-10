@@ -170,13 +170,31 @@ export default {
 
     const loadData = async () => {
       try {
-        const [doctorsResponse, patientsResponse] = await Promise.all([
-          AdminService.getAllDoctors(),
-          AdminService.getAllPatients(),
-        ]);
-
-        doctors.value = doctorsResponse.data;
-        patients.value = patientsResponse.data;
+        const response = await AdminService.getAllUsers();
+        const data = response.data.results || [];
+        doctors.value = data
+          .filter((u) => u.role === "doctor")
+          .map((u) => ({
+            id: u.id,
+            speciality: u.speciality,
+            user: {
+              id: u.id,
+              first_name: u.first_name,
+              last_name: u.last_name,
+              email: u.email,
+            },
+          }));
+        patients.value = data
+          .filter((u) => u.role === "patient")
+          .map((u) => ({
+            id: u.id,
+            user: {
+              id: u.id,
+              first_name: u.first_name,
+              last_name: u.last_name,
+              email: u.email,
+            },
+          }));
       } catch (err) {
         console.error("Failed to load doctors/patients", err);
         error.value = "Failed to load doctors and patients data";
