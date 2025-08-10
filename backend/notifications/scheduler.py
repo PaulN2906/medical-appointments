@@ -7,23 +7,16 @@ from appointments.models import Appointment
 from authentication.models import NotificationPreferences
 from .models import Notification
 
-try:
-    from celery import shared_task
-except ImportError:  # pragma: no cover - Celery not installed in tests
-    def shared_task(func):
-        return func
-
 logger = logging.getLogger(__name__)
 
 
-@shared_task
 def dispatch_upcoming_appointment_reminders():
     """Send reminder emails for appointments based on user preferences.
 
-    This task is designed to be executed periodically (e.g. every minute) by a
-    scheduler such as Celery beat or ``django-crontab``. For each confirmed
-    appointment the user's :class:`NotificationPreferences` are checked and, if
-    appropriate, an email reminder is sent.
+    This function can be executed periodically (e.g. via ``cron`` or
+    ``django-crontab``) to deliver reminders without requiring Celery.
+    For each confirmed appointment the user's :class:`NotificationPreferences`
+    are checked and, if appropriate, an email reminder is sent.
     """
     now = timezone.now()
     appointments = (

@@ -159,11 +159,10 @@ export default {
       }
 
       try {
-        const unreadNotifications = notifications.value.filter((n) => !n.read);
-        for (const notification of unreadNotifications) {
-          await NotificationService.markAsRead(notification.id);
-          notification.read = true;
-        }
+        await NotificationService.markAllAsRead();
+        notifications.value.forEach((n) => {
+          n.read = true;
+        });
       } catch (error) {
         console.error("Failed to mark all notifications as read", error);
         alert("Failed to mark all notifications as read. Please try again.");

@@ -49,10 +49,7 @@ class NotificationPreferences(models.Model):
     
     # Timing preferences
     reminder_hours_before = models.IntegerField(default=24, help_text="Hours before appointment to send reminder")
-    
-    # Marketing (optional)
-    marketing_emails = models.BooleanField(default=False, help_text="Receive promotional emails")
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

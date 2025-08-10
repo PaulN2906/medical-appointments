@@ -1,7 +1,7 @@
 import logging
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
-from django.utils.html import strip_tags
+from django.utils.html import strip_tags, escape
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -79,8 +79,9 @@ class EmailService:
                     self.user = user
                     self.type = 'email'
                     self.title = 'Appointment Reminder'
+                    doctor_name = escape(appointment.doctor.user.last_name)
                     self.message = (
-                        f"You have an appointment with Dr. {appointment.doctor.user.last_name} "
+                        f"You have an appointment with Dr. {doctor_name} "
                         f"on {appointment.schedule.date} at {appointment.schedule.start_time}."
                     )
                     self.id = appointment.id

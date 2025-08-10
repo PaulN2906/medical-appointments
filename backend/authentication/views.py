@@ -652,7 +652,6 @@ class UserViewSet(viewsets.ModelViewSet):
                 'system_notifications': True,
                 'status_updates': True,
                 'reminder_hours_before': 24,
-                'marketing_emails': False,
             }
         )
         
@@ -676,7 +675,6 @@ class UserViewSet(viewsets.ModelViewSet):
                     'system_notifications': True,
                     'status_updates': True,
                     'reminder_hours_before': 24,
-                    'marketing_emails': False,
                 }
             )
             
@@ -711,7 +709,6 @@ class UserViewSet(viewsets.ModelViewSet):
             preferences.system_notifications = True
             preferences.status_updates = True
             preferences.reminder_hours_before = 24
-            preferences.marketing_emails = False
             preferences.save()
             
             serializer = NotificationPreferencesSerializer(preferences)

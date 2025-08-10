@@ -69,14 +69,9 @@ export default {
       }
     },
 
-    async markAllAsRead({ commit, state }) {
+    async markAllAsRead({ commit }) {
       try {
-        const unreadNotifications = state.notifications.filter((n) => !n.read);
-
-        for (const notification of unreadNotifications) {
-          await NotificationService.markAsRead(notification.id);
-        }
-
+        await NotificationService.markAllAsRead();
         commit("markAllAsRead");
         return { success: true };
       } catch (error) {

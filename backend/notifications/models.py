@@ -44,8 +44,9 @@ class Notification(models.Model):
 
         user = appointment.patient.user
         title = "Appointment Reminder"
+        doctor_name = escape(appointment.doctor.user.last_name)
         message = (
-            f"You have an appointment with Dr. {appointment.doctor.user.last_name} "
+            f"You have an appointment with Dr. {doctor_name} "
             f"on {appointment.schedule.date} at {appointment.schedule.start_time}."
         )
 
