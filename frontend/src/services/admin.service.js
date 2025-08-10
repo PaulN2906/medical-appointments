@@ -7,14 +7,6 @@ export default {
   },
 
   // Users management
-  getAllDoctors() {
-    return api.get("doctors/doctors/");
-  },
-
-  getAllPatients() {
-    return api.get("patients/patients/");
-  },
-
   // Quick appointment booking pentru admin
   createAppointmentAsAdmin(appointmentData) {
     return api.post("appointments/", appointmentData);

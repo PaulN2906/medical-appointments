@@ -12,6 +12,7 @@ from .models import Appointment, Doctor, Patient
 from .serializers import AppointmentSerializer
 from doctors.models import Schedule
 from notifications.models import Notification
+from authentication.permissions import IsAdminRole
 import logging
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         # Admin vede toate appointment-urile
-        if hasattr(user, 'profile') and user.profile.role == 'admin':
+        if IsAdminRole().has_permission(self.request, self):
             return Appointment.objects.all().select_related(
                 'doctor__user', 'patient__user', 'schedule'
             ).order_by('-created_at')
@@ -53,7 +54,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         # Verifica daca utilizatorul are dreptul sa acceseze acest appointment
-        if hasattr(user, 'profile') and user.profile.role == 'admin':
+        if IsAdminRole().has_permission(self.request, self):
             return obj
         if hasattr(user, 'doctor') and user.doctor:
             if obj.doctor != user.doctor:
@@ -91,7 +92,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
             user = request.user
             if not (
-                hasattr(user, 'profile') and user.profile.role == 'admin' or
+                IsAdminRole().has_permission(request, self) or
                 (hasattr(user, 'patient') and serializer.validated_data['patient'] == user.patient)
             ):
                 raise PermissionDenied("You can only book appointments for yourself.")
@@ -155,7 +156,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
         user = request.user
         if not (
-            hasattr(user, 'profile') and user.profile.role == 'admin' or
+            IsAdminRole().has_permission(request, self) or
             (hasattr(user, 'doctor') and user.doctor == appointment.doctor)
         ):
             raise PermissionDenied("Only the assigned doctor or admin can confirm this appointment.")
@@ -189,8 +190,8 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         appointment = self.get_object()
         
         # Admin poate anula orice appointment
-        if hasattr(request.user, 'profile') and request.user.profile.role == 'admin':
-            pass # Admin are voie
+        if IsAdminRole().has_permission(request, self):
+            pass  # Admin are voie
         if appointment.status in ['completed', 'cancelled']:
             return Response(
                 {'error': 'This appointment cannot be cancelled'},
@@ -217,7 +218,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         from django.utils.html import escape
         
         # Pentru admin, notificam ambele parti
-        if hasattr(request.user, 'profile') and request.user.profile.role == 'admin':
+        if IsAdminRole().has_permission(request, self):
             # Notifică pacientul
             safe_doctor_name = escape(appointment.doctor.user.last_name)
             Notification.objects.create(
@@ -261,12 +262,9 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         logger.info(f"Appointment {appointment.id} cancelled by user {request.user.id}")
         return Response({'status': 'appointment cancelled'})
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminRole])
     def admin_stats(self, request):
         """Admin-only endpoint pentru statistici dashboard"""
-        if not (hasattr(request.user, 'profile') and request.user.profile.role == 'admin'):
-            raise PermissionDenied("Admin access required")
-        
         today = timezone.now().date()
 
         # Statistici de baza
