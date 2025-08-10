@@ -358,6 +358,7 @@ export default {
             id: u.id,
             speciality: u.speciality,
             description: u.description,
+            is_active: u.is_active,
             user: {
               id: u.id,
               first_name: u.first_name,
@@ -372,6 +373,7 @@ export default {
           .map((u) => ({
             id: u.id,
             date_of_birth: u.date_of_birth,
+            is_active: u.is_active,
             user: {
               id: u.id,
               first_name: u.first_name,

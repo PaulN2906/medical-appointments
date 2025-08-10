@@ -36,7 +36,7 @@ export default {
 
   // User management methods
   getAllUsers() {
-    return api.get("auth/users/admin/all/");
+    return api.get("auth/users/admin/all/", { params: { page_size: 1000 } });
   },
 
   updateUser(userId, userData) {

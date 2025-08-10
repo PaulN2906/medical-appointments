@@ -40,6 +40,8 @@ const routes = [
         next({ name: "DoctorDashboard" });
       } else if (user && user.role === "patient") {
         next({ name: "PatientDashboard" });
+      } else if (user && user.role === "admin") {
+        next({ name: "AdminDashboard" });
       } else {
         next({ name: "Login" });
       }
@@ -153,7 +155,12 @@ router.beforeEach(async (to, from, next) => {
   // Check if route is only for guests (non-authenticated users)
   else if (to.matched.some((record) => record.meta.requiresGuest)) {
     if (isAuthenticated) {
-      next({ name: "Dashboard" });
+      const user = store.getters["auth/currentUser"];
+      if (user && user.role === "admin") {
+        next({ name: "AdminDashboard" });
+      } else {
+        next({ name: "Dashboard" });
+      }
     } else {
       next();
     }

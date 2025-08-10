@@ -16,7 +16,7 @@
 
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto">
-          <li class="nav-item" v-if="isAuthenticated">
+          <li class="nav-item" v-if="isAuthenticated && !isAdmin">
             <router-link class="nav-link" to="/dashboard">
               Dashboard
             </router-link>

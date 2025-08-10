@@ -119,7 +119,12 @@ export default {
         if (result.error) {
           error.value = result.error;
         } else if (!result.requires2FA) {
-          router.push("/dashboard");
+          const user = store.getters["auth/currentUser"];
+          if (user && user.role === "admin") {
+            router.push("/admin");
+          } else {
+            router.push("/dashboard");
+          }
         }
       } catch (err) {
         error.value = "An unexpected error occurred";
@@ -142,7 +147,12 @@ export default {
         if (result.error) {
           error2FA.value = result.error;
         } else {
-          router.push("/dashboard");
+          const user = store.getters["auth/currentUser"];
+          if (user && user.role === "admin") {
+            router.push("/admin");
+          } else {
+            router.push("/dashboard");
+          }
         }
       } catch (err) {
         error2FA.value = "An unexpected error occurred during 2FA verification";
