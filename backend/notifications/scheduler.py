@@ -19,9 +19,13 @@ def dispatch_upcoming_appointment_reminders():
     are checked and, if appropriate, an email reminder is sent.
     """
     now = timezone.now()
+    window_end = now + timedelta(days=2)
     appointments = (
-        Appointment.objects.filter(status="confirmed")
-        .select_related("patient__user", "doctor__user", "schedule")
+        Appointment.objects.filter(
+            status="confirmed",
+            reminder_sent=False,
+            schedule__date__range=(now.date(), window_end.date()),
+        ).select_related("patient__user", "doctor__user", "schedule")
     )
 
     for appointment in appointments:
@@ -45,6 +49,8 @@ def dispatch_upcoming_appointment_reminders():
         # Send the reminder if we are within the target minute
         if reminder_time <= now < reminder_time + timedelta(minutes=1):
             Notification.send_appointment_reminder(appointment)
+            appointment.reminder_sent = True
+            appointment.save(update_fields=["reminder_sent"])
             logger.info(
                 "Dispatched reminder for appointment %s to %s",
                 appointment.id,

@@ -119,6 +119,8 @@ class AppointmentReminderSchedulerTests(APITestCase):
         with patch("notifications.scheduler.timezone.now", return_value=self.now):
             dispatch_upcoming_appointment_reminders()
         mock_send.assert_not_called()
+        self.appointment.refresh_from_db()
+        self.assertFalse(self.appointment.reminder_sent)
 
     @patch("notifications.scheduler.Notification.send_appointment_reminder")
     def test_sends_when_enabled(self, mock_send):
@@ -129,3 +131,22 @@ class AppointmentReminderSchedulerTests(APITestCase):
         with patch("notifications.scheduler.timezone.now", return_value=self.now):
             dispatch_upcoming_appointment_reminders()
         mock_send.assert_called_once_with(self.appointment)
+        self.appointment.refresh_from_db()
+        self.assertTrue(self.appointment.reminder_sent)
+
+    @patch("notifications.scheduler.Notification.send_appointment_reminder")
+    def test_sends_only_once(self, mock_send):
+        schedule_dt = datetime.combine(self.schedule.date, self.schedule.start_time)
+        schedule_dt = timezone.make_aware(schedule_dt, timezone.get_current_timezone())
+        reminder_time = schedule_dt - timedelta(hours=self.prefs.reminder_hours_before)
+        self.assertEqual(reminder_time, self.now)
+        with patch("notifications.scheduler.timezone.now", return_value=self.now):
+            dispatch_upcoming_appointment_reminders()
+        mock_send.assert_called_once_with(self.appointment)
+        self.appointment.refresh_from_db()
+        self.assertTrue(self.appointment.reminder_sent)
+
+        mock_send.reset_mock()
+        with patch("notifications.scheduler.timezone.now", return_value=self.now):
+            dispatch_upcoming_appointment_reminders()
+        mock_send.assert_not_called()
