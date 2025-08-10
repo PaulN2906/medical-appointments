@@ -20,6 +20,7 @@ class Appointment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     notes = models.TextField(blank=True, null=True)
+    reminder_sent = models.BooleanField(default=False)
     
     class Meta:
         constraints = [
