@@ -1,8 +1,15 @@
 from django.contrib.auth.models import User
 from rest_framework.test import APITestCase, APIClient
 from unittest.mock import patch
+from django.utils import timezone
+from datetime import timedelta, datetime
 
 from .models import Notification
+from .scheduler import dispatch_upcoming_appointment_reminders
+from appointments.models import Appointment
+from authentication.models import NotificationPreferences
+from patients.models import Patient
+from doctors.models import Doctor, Schedule
 
 
 class NotificationTests(APITestCase):
@@ -74,3 +81,51 @@ class NotificationTests(APITestCase):
         self.assertTrue(notif.email_sent)
         self.assertIsNotNone(notif.email_sent_at)
         mock_send.assert_called_once_with(notif)
+
+
+class AppointmentReminderSchedulerTests(APITestCase):
+    def setUp(self):
+        self.now = timezone.localtime(timezone.now()).replace(second=0, microsecond=0)
+        self.patient_user = User.objects.create_user(username="patient", password="p")
+        self.patient = Patient.objects.create(user=self.patient_user)
+        self.doctor_user = User.objects.create_user(username="doctor", password="p")
+        self.doctor = Doctor.objects.create(user=self.doctor_user, speciality="s")
+        schedule_dt = self.now + timedelta(hours=24)
+        start_time = schedule_dt.time().replace(tzinfo=None)
+        end_time = (schedule_dt + timedelta(hours=1)).time().replace(tzinfo=None)
+        self.schedule = Schedule.objects.create(
+            doctor=self.doctor,
+            date=schedule_dt.date(),
+            start_time=start_time,
+            end_time=end_time,
+        )
+        self.appointment = Appointment.objects.create(
+            patient=self.patient,
+            doctor=self.doctor,
+            schedule=self.schedule,
+            status="confirmed",
+        )
+        self.prefs = NotificationPreferences.objects.create(
+            user=self.patient_user,
+            email_enabled=True,
+            appointment_reminders=True,
+            reminder_hours_before=24,
+        )
+
+    @patch("notifications.scheduler.Notification.send_appointment_reminder")
+    def test_skips_when_email_disabled(self, mock_send):
+        self.prefs.email_enabled = False
+        self.prefs.save()
+        with patch("notifications.scheduler.timezone.now", return_value=self.now):
+            dispatch_upcoming_appointment_reminders()
+        mock_send.assert_not_called()
+
+    @patch("notifications.scheduler.Notification.send_appointment_reminder")
+    def test_sends_when_enabled(self, mock_send):
+        schedule_dt = datetime.combine(self.schedule.date, self.schedule.start_time)
+        schedule_dt = timezone.make_aware(schedule_dt, timezone.get_current_timezone())
+        reminder_time = schedule_dt - timedelta(hours=self.prefs.reminder_hours_before)
+        self.assertEqual(reminder_time, self.now)
+        with patch("notifications.scheduler.timezone.now", return_value=self.now):
+            dispatch_upcoming_appointment_reminders()
+        mock_send.assert_called_once_with(self.appointment)

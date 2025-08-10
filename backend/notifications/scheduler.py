@@ -32,7 +32,8 @@ def dispatch_upcoming_appointment_reminders():
         except NotificationPreferences.DoesNotExist:
             continue
 
-        if not prefs.appointment_reminders:
+        # Skip if email notifications are disabled or reminders are turned off
+        if not (prefs.email_enabled and prefs.appointment_reminders):
             continue
 
         schedule_dt = datetime.combine(
