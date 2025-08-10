@@ -167,28 +167,6 @@
           </div>
         </div>
 
-        <div class="card mb-3">
-          <div class="card-header">
-            <h6 class="mb-0">Optional Communications</h6>
-          </div>
-          <div class="card-body">
-            <div class="form-check form-switch">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                id="marketingEmails"
-                v-model="notificationPrefs.marketing_emails"
-              />
-              <label class="form-check-label" for="marketingEmails">
-                Marketing Emails
-              </label>
-              <div class="form-text">
-                Receive occasional updates about new features and offers.
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div v-if="notificationError" class="alert alert-danger mb-3">
           {{ notificationError }}
         </div>
@@ -239,7 +217,6 @@ export default {
       system_notifications: true,
       status_updates: true,
       reminder_hours_before: 24,
-      marketing_emails: false,
     });
 
     const loadNotificationPreferences = async () => {
@@ -254,7 +231,6 @@ export default {
           system_notifications: prefs.system_notifications,
           status_updates: prefs.status_updates,
           reminder_hours_before: prefs.reminder_hours_before,
-          marketing_emails: prefs.marketing_emails,
         });
       } catch (error) {
         console.error("Failed to load notification preferences:", error);
@@ -309,7 +285,6 @@ export default {
           system_notifications: prefs.system_notifications,
           status_updates: prefs.status_updates,
           reminder_hours_before: prefs.reminder_hours_before,
-          marketing_emails: prefs.marketing_emails,
         });
         notificationPrefsSaved.value = true;
         setTimeout(() => {

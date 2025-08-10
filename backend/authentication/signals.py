@@ -17,6 +17,5 @@ def create_notification_preferences(sender, instance, created, **kwargs):
                 'system_notifications': True,
                 'status_updates': True,
                 'reminder_hours_before': 24,
-                'marketing_emails': False,
             }
         )

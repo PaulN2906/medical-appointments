@@ -118,7 +118,6 @@ class NotificationPreferencesSerializer(serializers.ModelSerializer):
             'system_notifications',
             'status_updates',
             'reminder_hours_before',
-            'marketing_emails',
             'updated_at'
         ]
         read_only_fields = ['updated_at']
