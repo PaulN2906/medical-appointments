@@ -235,7 +235,9 @@
                     </button>
                     <button
                       class="btn btn-outline-warning"
-                      @click="resetPassword(patient.user.id, patient.user.email)"
+                      @click="
+                        resetPassword(patient.user.id, patient.user.email)
+                      "
                     >
                       <i class="bi bi-key me-1"></i>Reset PWD
                     </button>
